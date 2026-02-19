@@ -1,4 +1,8 @@
 node_modules/
 data/
+data/deleted-games.json
+data/games.json
+data/tokens.json
+data/users.json
 .env
 utils/antivirus.log

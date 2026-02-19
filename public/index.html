@@ -1,18 +1,22 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GameVerse</title>
   <link rel="stylesheet" href="styles.css">
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Press+Start+2P&display=swap" rel="stylesheet">
 </head>
+
 <body class="gradient-bg">
+  <canvas id="physics-bg-canvas"></canvas>
+
   <header>
     <div class="header-content">
       <h1 class="neon-text">
         <span class="logo-icon">🎮</span> GAMEVERSE
-        <span class="logo-glow"></span>
       </h1>
       <div id="authPanel" class="auth-panel">
         <div class="auth-dropdown">
@@ -27,16 +31,21 @@
   </header>
 
   <main class="main-container">
-    <div id="banMessage" class="text-center text-danger" style="display: none; margin: 2rem auto; max-width: 600px;"></div>
+    <div id="banMessage" class="text-center text-danger" style="display: none; margin: 2rem auto; max-width: 600px;">
+    </div>
+
     <section class="filter-section">
       <div class="genre-panel glass-card">
         <h2 class="genre-title">Жанры</h2>
         <div class="genre-buttons">
-          <button class="genre-button active" data-genre="">Все жанры</button>
+          <button class="genre-button active" data-genre="">Все игры</button>
           <button class="genre-button" data-genre="Аркада">Аркада</button>
           <button class="genre-button" data-genre="Стратегия">Стратегия</button>
           <button class="genre-button" data-genre="Головоломка">Головоломка</button>
         </div>
+      </div>
+      <div class="search-panel glass-card">
+        <input type="text" id="searchInput" class="search-input" placeholder="Поиск по названию или описанию...">
       </div>
       <div class="filter-panel glass-card">
         <div class="filter-buttons">
@@ -50,32 +59,38 @@
 
     <section class="games-section">
       <h2 class="section-title">🔥 Все игры</h2>
-      <div class="games-grid">
-        <template id="game-card-template">
-          <div class="game-card">
-            <div class="game-cover-wrapper">
-              <div class="game-cover-placeholder">
-                <span>🎮</span>
-                <span class="no-cover-text">Нет обложки</span>
-              </div>
-              <img class="game-cover" src="" alt="Game cover" onerror="this.style.display='none'; this.previousElementSibling.style.display='flex';">
-              <div class="game-rating">
-                <span class="rating-value"></span>
-                <span class="rating-star">★</span>
-              </div>
-              <button class="action-button info-action" title="Подробнее">
-                <span>ℹ️</span>
-              </button>
-              <button class="action-button favorite-action" title="Добавить в избранное">
-                <span>❤️</span>
-              </button>
-            </div>
-            <div class="game-info">
-              <h3 class="game-title"></h3>
-            </div>
-          </div>
-        </template>
+      <div class="games-grid" id="gamesGrid">
+        <!-- Карточка случайной игры дня будет вставляться первой через JS -->
       </div>
+
+      <!-- Шаблон карточки вынесен вне контейнера -->
+      <template id="game-card-template">
+        <div class="game-card">
+          <div class="game-cover-wrapper">
+            <div class="game-cover-placeholder">
+              <span>🎮</span>
+              <span class="no-cover-text">Нет обложки</span>
+            </div>
+            <img class="game-cover" src="" alt="Game cover"
+              onerror="this.style.display='none'; this.previousElementSibling.style.display='flex';">
+            <div class="game-rating">
+              <span class="rating-value"></span>
+              <span class="rating-star">★</span>
+            </div>
+            <button class="action-button info-action" title="Подробнее">
+              <span>ℹ️</span>
+            </button>
+            <button class="action-button favorite-action" title="Добавить в избранное">
+              <span>❤️</span>
+            </button>
+          </div>
+          <div class="game-info">
+            <h3 class="game-title"></h3>
+          </div>
+        </div>
+      </template>
+
+      <!-- Пустой контейнер для динамической отрисовки карточек -->
     </section>
   </main>
 
@@ -97,638 +112,305 @@
       </form>
     </div>
   </div>
-
-  <div id="preloader" class="preloader">
-    <div class="loading-spinner"></div>
-    <p>Загрузка...</p>
+  <div id="gameOfTheDayModal" class="modal">
+    <div class="modal-content glass-card">
+      <div class="modal-header">
+        <span class="close-button" onclick="closeGameOfTheDayModal()">×</span>
+        <h2>🎲 Игра дня</h2>
+      </div>
+      <div id="gameOfTheDayContent">
+        <div class="game-cover-wrapper">
+          <img id="gameOfTheDayCover" class="game-cover" src="" alt="Game cover">
+          <div id="gameOfTheDayPlaceholder" class="game-cover-placeholder">
+            <span>🎮</span>
+            <span class="no-cover-text">Нет обложки</span>
+          </div>
+        </div>
+        <h3 id="gameOfTheDayTitle" class="game-title">Название игры</h3>
+        <div class="game-rating">
+          <span id="gameOfTheDayRating" class="rating-value">0.0</span>
+          <span class="rating-star">★</span>
+        </div>
+        <button id="playGameOfTheDay" class="btn neon-btn">Играть</button>
+        <div id="ratingSection" style="display: none; margin-top: 1rem;">
+          <h3>Оцените игру</h3>
+          <div class="rating-stars" id="ratingStars">
+            <span data-value="1">★</span>
+            <span data-value="2">★</span>
+            <span data-value="3">★</span>
+            <span data-value="4">★</span>
+            <span data-value="5">★</span>
+          </div>
+          <textarea id="gameOfTheDayComment" placeholder="Ваш отзыв (необязательно)"
+            style="width: 100%; height: 80px; margin-top: 0.5rem;"></textarea>
+          <button id="submitGameOfTheDayRating" class="btn neon-btn" style="margin-top: 0.5rem;">Отправить
+            отзыв</button>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <script>
-    async function checkNotifications() {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) return;
 
-        const userRes = await fetch('/user-data', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!userRes.ok) return;
+<div id="preloader" class="preloader">
+  <div class="joystick-container">
+    <svg class="joystick-svg" width="80" height="80" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <!-- Основание джойстика -->
+      <rect class="joystick-base" x="12" y="40" width="40" height="12" rx="2" ry="2" />
+      <!-- Шток джойстика -->
+      <rect class="joystick-stick" x="30" y="24" width="4" height="16" />
+      <!-- Ручка -->
+      <circle class="joystick-knob" cx="32" cy="16" r="8" />
+    </svg>
+  </div>
 
-        const user = await userRes.json();
-        const notificationsRes = await fetch('/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: user.username })
-        });
+  <p>ЗАГРУЗКА...</p>
+  <div class="progress-bar"></div>
+</div>
 
-        const data = await notificationsRes.json();
-        if (data.notifications && data.notifications.length > 0) {
-          const messages = data.notifications.map(n =>
-            `Игра "${n.gameName}" была удалена.\nПричина: ${n.reason}\nДата: ${new Date(n.deletedAt).toLocaleString()}`
-          ).join('\n\n');
-          alert(messages);
-        }
-      } catch (err) {
-        console.error('Ошибка проверки уведомлений:', err);
-      }
-    }
 
-    let currentUser = null;
-    let selectedGameId = null;
-    let currentGames = [];
-    let isLoading = true;
 
-    function showLoading() {
-      document.getElementById('preloader').style.display = 'flex';
-      isLoading = true;
-    }
 
-    function hideLoading() {
-      document.getElementById('preloader').style.display = 'none';
-      isLoading = false;
-    }
-
-    async function loadData() {
-      showLoading();
-      const banMessageDiv = document.getElementById('banMessage');
-      banMessageDiv.style.display = 'none'; // Reset ban message
-
-      try {
-        const token = localStorage.getItem('token');
-        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-
-        const gamesRes = await fetch("/games", { headers });
-        if (!gamesRes.ok) throw new Error('Ошибка загрузки списка игр');
-        currentGames = await gamesRes.json();
-
-        if (token) {
-          try {
-            const userRes = await fetch("/user-data", { headers });
-            if (userRes.ok) {
-              currentUser = await userRes.json();
-              if (currentUser.banned && currentUser.bannedUntil && new Date(currentUser.bannedUntil) > new Date()) {
-                const banEnd = new Date(currentUser.bannedUntil).toLocaleString('ru-RU');
-                banMessageDiv.textContent = `Ваш аккаунт заблокирован до ${banEnd}. Причина: ${currentUser.banReason || 'Причина не указана'}`;
-                banMessageDiv.style.display = 'block';
-                localStorage.removeItem('token'); // Clear token to prevent further actions
-                currentUser = null;
-              }
-            } else {
-              throw new Error('Ошибка загрузки данных пользователя');
-            }
-          } catch (err) {
-            console.warn('Ошибка аутентификации:', err);
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            currentUser = null;
-          }
-        } else {
-          currentUser = null;
-        }
-
-        updateAuthPanel(currentUser);
-        await renderGamesWithRetry(currentGames, currentUser);
-      } catch (err) {
-        console.error("Ошибка загрузки данных:", err);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        currentUser = null;
-        updateAuthPanel(null);
-        await renderGamesWithRetry([], null);
-      } finally {
-        hideLoading();
-      }
-    }
-
-    async function logout() {
-      try {
-        const token = localStorage.getItem('token');
-        if (token) {
-          await fetch("/logout", {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-        }
-      } catch (err) {
-        console.error("Ошибка выхода:", err);
-      } finally {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        currentUser = null;
-        document.getElementById('banMessage').style.display = 'none';
-        updateAuthPanel(null);
-        loadData();
-      }
-    }
-
-    function updateAuthPanel(user) {
-      const authPanel = document.getElementById("authPanel");
-      if (!authPanel) return;
-
-      if (user && user.username && localStorage.getItem('token')) {
-        authPanel.innerHTML = `
-          <div class="user-info">
-            <img src="${user.avatar || 'https://via.placeholder.com/40'}" alt="Аватар" class="user-avatar">
-            <span>${user.username}</span>
-            <a href="lichniy_cabinet.html" class="btn neon-btn">Кабинет</a>
-            <button onclick="logout()" class="btn neon-btn">Выйти</button>
-          </div>
-        `;
-      } else {
-        authPanel.innerHTML = `
-          <div class="auth-dropdown">
-            <button class="btn neon-btn dropdown-toggle">🔓 Войти / Рег.</button>
-            <div class="dropdown-menu">
-              <a href="login.html" class="dropdown-item">🚪 Вход</a>
-              <a href="register.html" class="dropdown-item">📝 Регистрация</a>
-            </div>
-          </div>
-        `;
-        initAuthDropdown();
-      }
-    }
-
-    async function getGameIndexPath(game) {
-      if (game.path && typeof game.path === "string") {
-        return `/games/${game.id}/${game.path.split('/').slice(2).join('/')}`;
-      }
-      return `/games/${game.id}/simple_game/index.html`;
-    }
-
-    async function renderGamesWithRetry(games, user, retries = 3, delay = 100) {
-      for (let attempt = 1; attempt <= retries; attempt++) {
-        const template = document.getElementById('game-card-template');
-        if (template) {
-          renderGames(games, user);
-          return;
-        }
-        console.warn(`Попытка ${attempt}: Шаблон 'game-card-template' не найден. Ожидание ${delay}мс...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
-      console.error("Не удалось найти шаблон 'game-card-template' после всех попыток");
-      document.querySelector(".games-grid").innerHTML = '<p class="no-games">Ошибка: шаблон игры не найден</p>';
-    }
-
-    function renderGames(games, user) {
-      const gamesContainer = document.querySelector(".games-grid");
-      const template = document.getElementById("game-card-template");
-
-      if (!template) {
-        console.error("Template with ID 'game-card-template' not found");
-        gamesContainer.innerHTML = '<p class="no-games">Ошибка: шаблон игры не найден</p>';
-        return;
-      }
-
-      gamesContainer.innerHTML = "";
-
-      if (!games || games.length === 0) {
-        gamesContainer.innerHTML = '<p class="no-games">Игры не найдены</p>';
-        return;
-      }
-
-      games.forEach((game) => {
-        const clone = template.content.cloneNode(true);
-        
-        const cover = clone.querySelector(".game-cover");
-        const placeholder = clone.querySelector(".game-cover-placeholder");
-        if (game.cover && typeof game.cover === "string" && game.cover.startsWith("data:")) {
-          cover.src = game.cover;
-          cover.style.display = "";
-          placeholder.style.display = "none";
-        } else {
-          cover.src = "";
-          cover.style.display = "none";
-          placeholder.style.display = "flex";
-        }
-
-        clone.querySelector(".game-title").textContent = game.title || game.name || "Без названия";
-
-        const rating = getAverageRatingValue(game.ratings);
-        clone.querySelector(".rating-value").textContent = rating.toFixed(1);
-
-        const actionButton = clone.querySelector(".action-button.info-action");
-        actionButton.addEventListener("click", (e) => {
-          e.stopPropagation();
-          const ripple = document.createElement('span');
-          ripple.className = 'ripple';
-          const rect = actionButton.getBoundingClientRect();
-          ripple.style.left = (e.clientX - rect.left) + 'px';
-          ripple.style.top = (e.clientY - rect.top) + 'px';
-          ripple.style.width = ripple.style.height = Math.max(rect.width, rect.height) + 'px';
-          actionButton.appendChild(ripple);
-          setTimeout(() => ripple.remove(), 500);
-          window.open(`descr_game.html?id=${game.id}`, "_blank");
-        });
-
-        const favoriteButton = clone.querySelector(".action-button.favorite-action");
-        favoriteButton.addEventListener("click", (e) => {
-          e.stopPropagation();
-          toggleFavorite(game.id);
-        });
-        favoriteButton.querySelector("span").textContent = game.isFavorite ? "💔" : "❤️";
-        favoriteButton.title = game.isFavorite ? "Убрать из избранного" : "Добавить в избранное";
-
-        const card = clone.querySelector(".game-card");
-        card.style.cursor = "pointer";
-        card.addEventListener("click", async () => {
-          const token = localStorage.getItem('token');
-          const basePath = `${game.path || `/games/${game.id}/simple_game/index.html`}`;
-          const url = basePath.startsWith('/games/') ? basePath : `/games/${game.id}/${basePath}`;
-
-          fetch(`/games/${game.id}/view`, {
-            method: "POST",
-            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-          }).catch(console.error);
-
-          window.open(url, "_blank");
-        });
-
-        gamesContainer.appendChild(clone);
-      });
-    }
-
-    async function toggleFavorite(gameId) {
-      if (!currentUser) {
-        alert('Пожалуйста, войдите в систему, чтобы добавить игру в избранное');
-        return;
-      }
-
-      try {
-        showLoading();
-        const token = localStorage.getItem('token');
-        const game = currentGames.find(g => g.id === gameId);
-        if (!game) {
-          throw new Error('Игра не найдена');
-        }
-
-        const isFavorite = game.isFavorite || false;
-        const endpoint = isFavorite ? `/favorites/remove/${gameId}` : `/favorites/add/${gameId}`;
-        const method = isFavorite ? 'DELETE' : 'POST';
-
-        const response = await fetch(endpoint, {
-          method: method,
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || 'Ошибка обновления избранного');
-        }
-
-        const gamesRes = await fetch("/games", {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!gamesRes.ok) throw new Error('Ошибка загрузки списка игр');
-        
-        currentGames = await gamesRes.json();
-        await renderGamesWithRetry(currentGames, currentUser);
-      } catch (err) {
-        console.error("Ошибка в toggleFavorite:", err);
-        alert(err.message || "Не удалось обновить избранное");
-      } finally {
-        hideLoading();
-      }
-    }
-
-    async function deleteGame(gameId) {
-      if (!currentUser || currentUser.role !== 'admin') return;
+<!-- Обновленный SVG для реалистичной шестерёнки -->
+<div id="gameLoader" class="game-loader">
+  <div class="gear-loader-container">
+    <svg class="gear-loader-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <!-- Внешнее кольцо с зубцами -->
+      <circle class="gear-outer-ring" cx="50" cy="50" r="42" fill="#333" stroke="#666" stroke-width="1"/>
       
-      const reason = prompt('Укажите причину удаления игры:');
-      if (!reason) return;
-
-      if (!confirm('Вы уверены, что хотите удалить эту игру?')) return;
-
-      try {
-        const response = await fetch(`/admin/games/${gameId}`, {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ reason })
-        });
-
-        if (!response.ok) throw new Error('Ошибка удаления');
-        
-        alert('Игра успешно удалена');
-        loadData();
-      } catch (err) {
-        console.error('Ошибка:', err);
-        alert('Ошибка при удалении игры');
-      }
-    }
-
-    function getAverageRating(ratings) {
-      if (!ratings || ratings.length === 0) return '0.0 ★';
-      const avg = ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length;
-      return avg.toFixed(1) + ' ★';
-    }
-
-    function applyFilters() {
-      showLoading();
-      const token = localStorage.getItem('token');
-      const activeGenreButton = document.querySelector('.genre-button.active');
-      const activeFilterButton = document.querySelector('.filter-button.active:not(.clear-filters)');
+      <!-- Зубцы (12 трапециевидных элементов) -->
+      <g class="gear-teeth">
+        <path d="M50,8 L52,15 L58,15 L60,8 L50,8Z" transform="rotate(0,50,50)"/>
+        <path d="M50,8 L52,15 L58,15 L60,8 L50,8Z" transform="rotate(30,50,50)"/>
+        <path d="M50,8 L52,15 L58,15 L60,8 L50,8Z" transform="rotate(60,50,50)"/>
+        <path d="M50,8 L52,15 L58,15 L60,8 L50,8Z" transform="rotate(90,50,50)"/>
+        <path d="M50,8 L52,15 L58,15 L60,8 L50,8Z" transform="rotate(120,50,50)"/>
+        <path d="M50,8 L52,15 L58,15 L60,8 L50,8Z" transform="rotate(150,50,50)"/>
+        <path d="M50,8 L52,15 L58,15 L60,8 L50,8Z" transform="rotate(180,50,50)"/>
+        <path d="M50,8 L52,15 L58,15 L60,8 L50,8Z" transform="rotate(210,50,50)"/>
+        <path d="M50,8 L52,15 L58,15 L60,8 L50,8Z" transform="rotate(240,50,50)"/>
+        <path d="M50,8 L52,15 L58,15 L60,8 L50,8Z" transform="rotate(270,50,50)"/>
+        <path d="M50,8 L52,15 L58,15 L60,8 L50,8Z" transform="rotate(300,50,50)"/>
+        <path d="M50,8 L52,15 L58,15 L60,8 L50,8Z" transform="rotate(330,50,50)"/>
+      </g>
       
-      const params = new URLSearchParams();
+      <!-- Внутренний круг (ступица) -->
+      <circle class="gear-inner-hub" cx="50" cy="50" r="20" fill="#333" stroke="#666" stroke-width="1"/>
       
-      if (activeGenreButton && activeGenreButton.dataset.genre) {
-        params.append('genre', activeGenreButton.dataset.genre);
-      }
-      
-      if (activeFilterButton && activeFilterButton.dataset.sort) {
-        params.append('sort', activeFilterButton.dataset.sort);
-      }
+      <!-- Крепежные отверстия -->
+      <!-- Крепежные отверстия: равномерно распределены по окружности -->
+<g class="gear-holes" fill="#000">
+  <!-- 6 отверстий, размещённых на окружности радиуса 18 вокруг центра (50,50) -->
+  <circle r="3" cx="50" cy="32" />
+  <circle r="3" cx="50" cy="32" transform="rotate(60,50,50)" />
+  <circle r="3" cx="50" cy="32" transform="rotate(120,50,50)" />
+  <circle r="3" cx="50" cy="32" transform="rotate(180,50,50)" />
+  <circle r="3" cx="50" cy="32" transform="rotate(240,50,50)" />
+  <circle r="3" cx="50" cy="32" transform="rotate(300,50,50)" />
+</g>
+    </svg>
+  </div>
+</div>
 
-      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-
-      fetch(`/games?${params.toString()}`, { 
-        method: 'GET',
-        headers: headers
-      })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error(`Ошибка сервера: ${response.status}`);
-        }
-        return response.json();
-      })
-      .then(games => {
-        if (!Array.isArray(games)) {
-          console.warn('Получен неверный формат данных:', games);
-          currentGames = [];
-        } else {
-          currentGames = games;
-        }
-        return renderGamesWithRetry(currentGames, currentUser);
-      })
-      .catch(err => {
-        console.error("Ошибка применения фильтров:", err);
-        alert('Не удалось загрузить игры. Попробуйте позже.');
-        currentGames = [];
-        return renderGamesWithRetry([], currentUser);
-      })
-      .finally(() => {
-        hideLoading();
-      });
-    }
-
-    function initFilters() {
-      const genreButtons = document.querySelectorAll('.genre-button');
-      const filterButtons = document.querySelectorAll('.filter-button');
-
-      genreButtons.forEach(button => {
-        button.addEventListener('click', () => {
-          genreButtons.forEach(btn => btn.classList.remove('active'));
-          button.classList.add('active');
-          applyFilters();
-        });
-      });
-
-      filterButtons.forEach(button => {
-        button.addEventListener('click', () => {
-          if (button.classList.contains('clear-filters')) {
-            genreButtons.forEach(btn => btn.classList.remove('active'));
-            filterButtons.forEach(btn => btn.classList.remove('active'));
-            document.querySelector('.genre-button[data-genre=""]').classList.add('active');
-            applyFilters();
-          } else {
-            filterButtons.forEach(btn => {
-              if (!btn.classList.contains('clear-filters')) {
-                btn.classList.remove('active');
-              }
-            });
-            button.classList.add('active');
-            applyFilters();
-          }
-        });
-      });
-    }
-
-    function getAverageRatingValue(ratings) {
-      if (!ratings || ratings.length === 0) return 0;
-      return ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length;
-    }
-
-    function initAuthDropdown() {
-      const authDropdown = document.querySelector('.auth-dropdown');
-      const dropdownToggle = document.querySelector('.dropdown-toggle');
-
-      if (dropdownToggle) {
-        dropdownToggle.addEventListener('click', (e) => {
-          e.stopPropagation();
-          authDropdown.classList.toggle('active');
-        });
-
-        document.addEventListener('click', (e) => {
-          if (!authDropdown.contains(e.target)) {
-            authDropdown.classList.remove('active');
-          }
-        });
-
-        const dropdownItems = document.querySelectorAll('.dropdown-item');
-        dropdownItems.forEach(item => {
-          item.addEventListener('click', () => {
-            authDropdown.classList.remove('active');
-          });
-        });
-      }
-    }
-
-    function launchGame(path, gameId) {
-      const token = localStorage.getItem('token');
-      
-      fetch(`/games/${gameId}/view`, {
-        method: 'POST',
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-      })
-      .then(() => {
-        const simplePath = path.split('/games/')[1].split('/');
-        simplePath.shift();
-        const finalPath = `/games/${gameId}/content/${simplePath.join('/')}`;
-        window.open(finalPath, '_blank');
-      })
-      .catch(err => console.error('Ошибка:', err));
-    }
-
-    function showRatingModal(gameId) {
-      if (!currentUser) {
-        alert('Пожалуйста, войдите в систему, чтобы оценить игру');
-        return;
-      }
-      
-      selectedGameId = gameId;
-      document.getElementById('selectedGameId').value = gameId;
-      document.getElementById('gameRating').value = '';
-      document.getElementById('gameComment').value = '';
-      document.getElementById('ratingModal').style.display = 'flex';
-    }
-
-    function closeRatingModal() {
-      document.getElementById('ratingModal').style.display = 'none';
-    }
-
-    async function submitRating(e) {
-      e.preventDefault();
-      const rating = document.getElementById('gameRating').value;
-      const comment = document.getElementById('gameComment').value;
-
-      try {
-        const response = await fetch(`/games/${selectedGameId}/rate`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ rating, comment })
-        });
-
-        if (response.ok) {
-          alert('Спасибо за ваш отзыв!');
-          closeRatingModal();
-          loadData();
-        } else {
-          throw new Error('Ошибка сохранения оценки');
-        }
-      } catch (err) {
-        console.error('Ошибка:', err);
-        alert(err.message);
-      }
-    }
-
-    function editGame(gameId) {
-      window.location.href = `edit-game.html?id=${gameId}`;
-    }
-
-    document.addEventListener("DOMContentLoaded", () => {
-      loadData();
-      checkNotifications();
-      initAuthDropdown();
-      initFilters();
-    });
-
-    const styles = `
-      .preloader {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.8);
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        z-index: 9999;
-      }
-
-      .preloader p {
-        margin-top: 1rem;
-        color: var(--neon-blue);
-      }
-
-      .no-games {
-        text-align: center;
-        color: rgba(255, 255, 255, 0.7);
-        font-size: 1.2rem;
-        margin: 2rem 0;
-      }
-
-      .favorite-action {
-        position: absolute;
-        top: 10px;
-        left: 50px;
-        background: rgba(0, 0, 0, 0.7);
-        border: none;
-        border-radius: 50%;
-        width: 30px;
-        height: 30px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #ff416c;
-      }
-
-      .favorite-action:hover {
-        background: rgba(255, 65, 108, 0.9);
-        color: white;
-      }
-
-      .user-avatar {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 2px solid rgba(255, 65, 108, 0.5);
-        box-shadow: 0 0 10px rgba(255, 65, 108, 0.3);
-        transition: transform 0.3s ease;
-      }
-
-      .user-avatar:hover {
-        transform: scale(1.1);
-      }
-
-      .user-info {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        flex-wrap: wrap;
-        padding: 0.5rem 1rem;
-        background: rgba(255,255,255,0.05);
-        border-radius: 30px;
-      }
-    `;
-
-    const styleSheet = document.createElement("style");
-    styleSheet.textContent = styles;
-    document.head.appendChild(styleSheet);
-
-    const errorStyles = `
-      .error-message {
-        width: 100%;
-        max-width: 600px;
-        margin: 2rem auto;
-        text-align: center;
-      }
-      
-      .error-card {
-        background: rgba(255, 0, 0, 0.1);
-        border: 1px solid rgba(255, 0, 0, 0.3);
-        padding: 2rem;
-      }
-      
-      .error-card h3 {
-        color: #ff4b4b;
-        margin-bottom: 1rem;
-      }
-      
-      .error-card p {
-        margin-bottom: 1.5rem;
-      }
-
-      .text-danger {
-        color: #ff4444;
-        font-size: 1.2rem;
-        font-weight: bold;
-      }
-
-      .text-center {
-        text-align: center;
-      }
-    `;
-
-    document.head.insertAdjacentHTML('beforeend', `<style>${errorStyles}</style>`);
-  </script>
+  <script src="/scripts/index.js"></script>
 
   <style>
-    .admin-panel {
-      display: none;
+    :root {
+      --bg-gradient: linear-gradient(135deg, #1a1a1a, #3a1c26);
     }
 
-    .genre-button.active, .filter-button.active {
-      background: linear-gradient(135deg, #ff416c, #ff4b2b);
-      color: white;
+    .gradient-bg {
+      background: var(--bg-gradient);
+      color: var(--text-color, #ffffff);
+      font-family: 'Orbitron', sans-serif;
+      min-height: 100vh;
+      position: relative;
+      overflow: hidden;
+    }
+
+    header {
+      background: rgba(0, 0, 0, 0.7);
+      border-bottom: 3px solid var(--theme-color);
+      box-shadow: 0 0 15px var(--theme-color);
+      transition: border-color 0.3s, box-shadow 0.3s;
+      width: 100%;
+      z-index: 1000;
+      position: static;
+    }
+
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .neon-text {
+      font-size: 2.5rem;
+      color: var(--theme-color);
+      text-shadow: 0 0 10px var(--theme-color), 0 0 20px var(--theme-color);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: color 0.3s, text-shadow 0.3s;
+    }
+
+    .logo-icon {
+      font-size: 2rem;
+    }
+
+    .logo-glow {
+      width: 20px;
+      height: 20px;
+      background: var(--theme-color);
+      border-radius: 50%;
+      box-shadow: 0 0 15px var(--theme-color);
+      transition: background 0.3s, box-shadow 0.3s;
+    }
+
+    .auth-panel {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .btn.neon-btn {
+      background: var(--theme-color);
+      color: var(--text-color, #ffffff);
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.3s, transform 0.2s, box-shadow 0.3s;
+      font-family: 'Orbitron', sans-serif;
+    }
+
+    .btn.neon-btn:hover {
+      background: var(--theme-secondary-color);
+      transform: scale(1.05);
+      box-shadow: 0 0 10px var(--theme-color);
+    }
+
+    .dropdown-menu {
+      display: none;
+      position: absolute;
+      background: rgba(0, 0, 0, 0.9);
+      border: 1px solid var(--theme-color);
+      border-radius: 5px;
+      padding: 0.5rem;
+      z-index: 1000;
+    }
+
+    .auth-dropdown.active .dropdown-menu {
+      display: block;
+    }
+
+    .dropdown-item {
+      display: block;
+      padding: 0.5rem 1rem;
+      color: var(--text-color, #ffffff);
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+
+    .dropdown-item:hover {
+      background: var(--theme-color);
+    }
+
+    .genre-button,
+    .filter-button {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-color, #ffffff);
+      border: 1px solid var(--theme-color);
+      padding: 0.5rem 1rem;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.3s, transform 0.2s;
+    }
+
+    .genre-button.active,
+    .filter-button.active {
+      background: var(--theme-color);
+      color: var(--text-color, #ffffff);
       transform: scale(1.05);
     }
+
+    .section-title,
+    .genre-title {
+      color: var(--theme-color);
+      text-shadow: 0 0 10px var(--theme-color);
+    }
+
+    .game-title {
+      color: var(--text-color, #ffffff);
+    }
+
+    .modal-content .neon-subtitle,
+    .modal-content .neon-label {
+      color: var(--theme-color);
+      text-shadow: 0 0 5px var(--theme-color);
+    }
+
+    .neon-textarea,
+    .modal-content input {
+      background: rgba(0, 0, 0, 0.5);
+      color: var(--text-color, #ffffff);
+      border: 1px solid var(--theme-color);
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+    .neon-textarea:focus,
+    .modal-content input:focus {
+      border-color: var(--theme-color);
+      box-shadow: 0 0 5px var(--theme-color);
+    }
+
+    @keyframes rgbGlow {
+      0% {
+        filter: hue-rotate(0deg);
+      }
+
+      100% {
+        filter: hue-rotate(360deg);
+      }
+    }
+
+    body.rgb-theme .neon-text,
+    body.rgb-theme .btn.neon-btn,
+    body.rgb-theme .section-title,
+    body.rgb-theme .genre-title,
+    body.rgb-theme .modal-content .neon-subtitle,
+    body.rgb-theme .modal-content .neon-label,
+    body.rgb-theme .logo-glow,
+    body.rgb-theme .loading-spinner {
+      animation: rgbGlow 5s linear infinite;
+    }
+
+    body.rgb-theme .gradient-bg {
+      background: linear-gradient(45deg, #ff6666, #66b3ff, #66cc66);
+      background-size: 300%;
+      animation: gradientShift 20s ease infinite;
+    }
+
+    @keyframes gradientShift {
+      0% {
+        background-position: 0% 50%;
+      }
+
+      50% {
+        background-position: 100% 50%;
+      }
+
+      100% {
+        background-position: 0% 50%;
+      }
+    }
+
+    body {
+      overflow-y: auto var(--theme-color) !important;
+    }
   </style>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9325a58bfca0dd19',t:'MTc0NDk5NDg3NC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'932bd37d6ce6b013',t:'MTc0NTA1OTY3MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
+
 </html>

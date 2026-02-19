@@ -1,305 +1,525 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Настройки - GameVerse</title>
-  <link rel="stylesheet" href="styles.css">
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Настройки - GameVerse</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body class="gradient-bg">
-  <header>
-    <div class="header-content">
-      <h1 class="neon-text">⚙️ Настройки</h1>
-      <nav class="auth-panel">
-        <a href="lichniy_cabinet.html" class="btn neon-btn">← Личный кабинет</a>
-        <a href="index.html" class="btn neon-btn">Главная</a>
-        <button onclick="logout()" class="btn neon-btn">Выйти</button>
-      </nav>
+    <header>
+        <div class="header-content">
+            <h1 class="neon-text">⚙️ Настройки</h1>
+            <nav class="auth-panel">
+                <a href="lichniy_cabinet.html" class="btn neon-btn">← Личный кабинет</a>
+                <a href="index.html" class="btn neon-btn">Главная</a>
+                <button onclick="logout()" class="btn neon-btn">Выйти</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <section class="settings-section glass-card">
+            <h2 class="section-title">Настройки профиля</h2>
+            <div class="settings-container">
+                <div class="settings-form">
+                    <h3 class="neon-subtitle">Смена ника</h3>
+                    <form id="usernameForm" onsubmit="return changeUsername(event)">
+                        <div class="input-group">
+                            <label class="neon-label" for="newUsername">Новый ник</label>
+                            <input type="text" id="newUsername" class="neon-input" required minlength="3" maxlength="20"
+                                pattern="[A-Za-z0-9_]+" title="Только буквы, цифры и подчеркивания">
+                        </div>
+                        <button type="submit" class="btn neon-btn">Изменить ник</button>
+                    </form>
+                </div>
+
+                <!-- Форма для смены пароля -->
+                <div class="settings-form">
+                    <h3 class="neon-subtitle">Смена пароля</h3>
+                    <form id="passwordForm" onsubmit="return changePassword(event)">
+                        <div class="input-group">
+                            <label class="neon-label" for="oldPassword">Старый пароль</label>
+                            <input type="password" id="oldPassword" class="neon-input" required>
+                        </div>
+                        <div class="input-group">
+                            <label class="neon-label" for="newPassword">Новый пароль</label>
+                            <input type="password" id="newPassword" class="neon-input" required minlength="6">
+                        </div>
+                        <button type="submit" class="btn neon-btn">Изменить пароль</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- Новая отдельная секция для тем -->
+        <section class="themes-section glass-card">
+            <h3 class="neon-subtitle">🎨 Выбор темы</h3>
+            <div class="theme-options">
+                <div class="theme-card red-theme" data-theme="red">
+                    <span class="theme-name">Красная</span>
+                </div>
+                <div class="theme-card yellow-theme" data-theme="yellow">
+                    <span class="theme-name">Жёлтая</span>
+                </div>
+                <div class="theme-card green-theme" data-theme="green">
+                    <span class="theme-name">Зелёная</span>
+                </div>
+                <div class="theme-card blue-theme" data-theme="blue">
+                    <span class="theme-name">Голубая</span>
+                </div>
+                <div class="theme-card purple-theme" data-theme="purple">
+                    <span class="theme-name">Фиолетовая</span>
+                </div>
+                <div class="theme-card rgb-theme" data-theme="rgb">
+                    <span class="theme-name">RGB</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="preloader" class="preloader">
+        <div class="loading-spinner"></div>
+        <p>Загрузка...</p>
     </div>
-  </header>
 
-  <main class="main-content">
-    <section class="settings-section glass-card">
-      <h2 class="section-title">Настройки профиля</h2>
-      <div class="settings-container">
-        <!-- Форма для смены ника -->
-        <div class="settings-form">
-          <h3 class="neon-subtitle">Смена ника</h3>
-          <form id="usernameForm" onsubmit="return changeUsername(event)">
-            <div class="input-group">
-              <label class="neon-label" for="newUsername">Новый ник</label>
-              <input type="text" id="newUsername" class="neon-input" required minlength="3" maxlength="20">
-            </div>
-            <button type="submit" class="btn neon-btn">Изменить ник</button>
-          </form>
-        </div>
+    <script src="/scripts/settings.js"> </script>
 
-        <!-- Форма для смены пароля -->
-        <div class="settings-form">
-          <h3 class="neon-subtitle">Смена пароля</h3>
-          <form id="passwordForm" onsubmit="return changePassword(event)">
-            <div class="input-group">
-              <label class="neon-label" for="oldPassword">Старый пароль</label>
-              <input type="password" id="oldPassword" class="neon-input" required>
-            </div>
-            <div class="input-group">
-              <label class="neon-label" for="newPassword">Новый пароль</label>
-              <input type="password" id="newPassword" class="neon-input" required minlength="6">
-            </div>
-            <button type="submit" class="btn neon-btn">Изменить пароль</button>
-          </form>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <div id="preloader" class="preloader">
-    <div class="loading-spinner"></div>
-    <p>Загрузка...</p>
-  </div>
-
-  <script>
-    let currentUser = null;
-
-    function showLoading() {
-      document.getElementById('preloader').style.display = 'flex';
-    }
-
-    function hideLoading() {
-      document.getElementById('preloader').style.display = 'none';
-    }
-
-    async function loadUserData() {
-      showLoading();
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          alert('Требуется авторизация');
-          window.location.href = '/login.html';
-          return;
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #1a1a1a, #3a1c26);
         }
 
-        const response = await fetch('/user-data', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        if (!response.ok) {
-          localStorage.removeItem('token');
-          throw new Error('Ошибка загрузки данных пользователя');
+        .gradient-bg {
+            background: var(--bg-gradient);
+            color: var(--text-color, #ffffff);
+            font-family: 'Orbitron', sans-serif;
+            min-height: 100vh;
         }
 
-        currentUser = await response.json();
-        console.log('Пользователь загружен:', currentUser);
-      } catch (err) {
-        console.error('Ошибка загрузки данных:', err);
-        alert(err.message || 'Не удалось загрузить данные');
-        window.location.href = '/login.html';
-      } finally {
-        hideLoading();
-      }
-    }
-
-    async function changeUsername(event) {
-      event.preventDefault();
-      const newUsername = document.getElementById('newUsername').value.trim();
-
-      try {
-        showLoading();
-        const token = localStorage.getItem('token');
-        const response = await fetch('/user/username', {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ newUsername })
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || 'Ошибка смены ника');
+        header {
+            background: rgba(0, 0, 0, 0.7);
+            border-bottom: 3px solid var(--theme-color);
+            box-shadow: 0 0 15px var(--theme-color);
+            transition: border-color 0.3s, box-shadow 0.3s;
         }
 
-        const data = await response.json();
-        localStorage.setItem('token', data.token);
-        currentUser.username = data.username;
-        alert('Ник успешно изменён');
-        document.getElementById('usernameForm').reset();
-      } catch (err) {
-        console.error('Ошибка смены ника:', err);
-        alert(err.message || 'Не удалось изменить ник');
-      } finally {
-        hideLoading();
-      }
-    }
-
-    async function changePassword(event) {
-      event.preventDefault();
-      const oldPassword = document.getElementById('oldPassword').value;
-      const newPassword = document.getElementById('newPassword').value;
-
-      try {
-        showLoading();
-        const token = localStorage.getItem('token');
-        const response = await fetch('/user/password', {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ oldPassword, newPassword })
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || 'Ошибка смены пароля');
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        alert('Пароль успешно изменён');
-        document.getElementById('passwordForm').reset();
-      } catch (err) {
-        console.error('Ошибка смены пароля:', err);
-        alert(err.message || 'Не удалось изменить пароль');
-      } finally {
-        hideLoading();
-      }
-    }
-
-    async function logout() {
-      try {
-        const token = localStorage.getItem('token');
-        if (token) {
-          await fetch('/logout', {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
+        .neon-text {
+            font-size: 2rem;
+            color: var(--theme-color);
+            text-shadow: 0 0 10px var(--theme-color), 0 0 20px var(--theme-color);
+            transition: color 0.3s, text-shadow 0.3s;
         }
-        localStorage.removeItem('token');
-        window.location.href = '/index.html';
-      } catch (err) {
-        console.error('Ошибка выхода:', err);
-        localStorage.removeItem('token');
-        window.location.href = '/index.html';
-      }
-    }
 
-    document.addEventListener('DOMContentLoaded', () => {
-      loadUserData();
-    });
-  </script>
+        .auth-panel {
+            display: flex;
+            gap: 1rem;
+        }
 
-  <style>
-    .gradient-bg {
-      background: var(--dark-bg);
-    }
+        .btn.neon-btn {
+            background: var(--theme-color);
+            color: var(--text-color, #ffffff);
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.2s, box-shadow 0.3s;
+            font-family: 'Orbitron', sans-serif;
+        }
 
-    .section-title {
-      font-size: 2rem;
-      color: #ff416c;
-      text-shadow: 0 0 10px rgba(255, 65, 108, 0.8);
-      margin-bottom: 1.5rem;
-      text-align: center;
-    }
+        .btn.neon-btn:hover {
+            background: var(--theme-color);
+            transform: scale(1.05);
+            box-shadow: 0 0 10px var(--theme-color);
+        }
 
-    .settings-section {
-      max-width: 600px;
-      margin: 2rem auto;
-      padding: 2rem;
-      border-radius: 10px;
-      background: rgba(255, 255, 255, 0.1);
-    }
+        .section-title {
+            font-size: 2rem;
+            color: var(--theme-color);
+            text-shadow: 0 0 10px var(--theme-color);
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
 
-    .settings-container {
-      display: flex;
-      flex-direction: column;
-      gap: 2rem;
-    }
+        .settings-section {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
 
-    .settings-form {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
+        .settings-container {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
 
-    .neon-subtitle {
-      font-size: 1.5rem;
-      color: #ffeb3b;
-      text-shadow: 0 0 5px rgba(255, 235, 59, 0.8);
-    }
+        .settings-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
 
-    .input-group {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
+        .neon-subtitle {
+            font-size: 1.5rem;
+            color: var(--theme-color);
+            text-shadow: 0 0 5px var(--theme-color);
+        }
 
-    .neon-label {
-      color: #ffeb3b;
-      font-size: 1rem;
-    }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
 
-    .neon-input {
-      padding: 0.5rem;
-      border: 1px solid #ff416c;
-      border-radius: 5px;
-      background: rgba(0, 0, 0, 0.5);
-      color: #fff;
-      font-size: 1rem;
-    }
+        .neon-label {
+            color: var(--theme-color);
+            font-size: 1rem;
+        }
 
-    .neon-input:focus {
-      outline: none;
-      border-color: #ffeb3b;
-      box-shadow: 0 0 5px rgba(255, 235, 59, 0.8);
-    }
+        .neon-input {
+            padding: 0.5rem;
+            border: 1px solid var(--theme-color);
+            border-radius: 5px;
+            background: rgba(0, 0, 0, 0.5);
+            color: var(--text-color, #ffffff);
+            font-size: 1rem;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
 
-    .btn.neon-btn {
-      background: linear-gradient(135deg, #ff416c, #ff4b2b);
-      color: white;
-      padding: 0.5rem 1rem;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      transition: transform 0.2s;
-    }
+        .neon-input:focus {
+            outline: none;
+            border-color: var(--theme-color);
+            box-shadow: 0 0 5px var(--theme-color);
+        }
 
-    .btn.neon-btn:hover {
-      transform: scale(1.05);
-    }
+        .preloader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
 
-    .preloader {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.8);
-      display: none;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      z-index: 9999;
-    }
+        .preloader p {
+            margin-top: 1rem;
+            color: var(--theme-color);
+        }
 
-    .preloader p {
-      margin-top: 1rem;
-      color: var(--neon-blue);
-    }
+        .loading-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid var(--theme-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
 
-    .loading-spinner {
-      border: 4px solid rgba(255, 255, 255, 0.3);
-      border-top: 4px solid #ff416c;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
-    }
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
 
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Стили для новой секции тем */
+.themes-section {
+    margin: 2rem auto;
+    padding: 2rem;
+    max-width: 800px;
+}
+
+.theme-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 20px;
+    padding: 1rem;
+}
+
+/* Изолируем карточки тем от внешних эффектов */
+.theme-options {
+    contain: layout style;
+    isolation: isolate;
+}
+
+.theme-card {
+    position: relative;
+    height: 120px;
+    border-radius: 15px;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 2px solid transparent;
+    backdrop-filter: blur(5px);
+    overflow: hidden;
+}
+
+/* Красная тема */
+.theme-card[data-theme="red"] {
+    background: linear-gradient(45deg, #ff416c, #ff4b2b);
+    box-shadow: 0 4px 15px rgba(255, 65, 108, 0.2);
+}
+.theme-card[data-theme="red"]:hover {
+    box-shadow: 0 6px 20px rgba(255, 65, 108, 0.4);
+    transform: translateY(-5px);
+}
+.theme-card[data-theme="red"].selected {
+    box-shadow: 0 0 25px #ff416c, inset 0 0 15px rgba(255, 65, 108, 0.5);
+    transform: scale(1.05);
+}
+
+/* Жёлтая тема */
+.theme-card[data-theme="yellow"] {
+    background: linear-gradient(45deg, #ffd700, #ffa500);
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
+}
+.theme-card[data-theme="yellow"]:hover {
+    box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+    transform: translateY(-5px);
+}
+.theme-card[data-theme="yellow"].selected {
+    box-shadow: 0 0 25px #ffd700, inset 0 0 15px rgba(255, 215, 0, 0.5);
+    transform: scale(1.05);
+}
+
+/* Зелёная тема */
+.theme-card[data-theme="green"] {
+    background: linear-gradient(45deg, #4caf50, #45a049);
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.2);
+}
+.theme-card[data-theme="green"]:hover {
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+    transform: translateY(-5px);
+}
+.theme-card[data-theme="green"].selected {
+    box-shadow: 0 0 25px #4caf50, inset 0 0 15px rgba(76, 175, 80, 0.5);
+    transform: scale(1.05);
+}
+
+/* Голубая тема */
+.theme-card[data-theme="blue"] {
+    background: linear-gradient(45deg, #2196f3, #1e88e5);
+    box-shadow: 0 4px 15px rgba(33, 150, 243, 0.2);
+}
+.theme-card[data-theme="blue"]:hover {
+    box-shadow: 0 6px 20px rgba(33, 150, 243, 0.4);
+    transform: translateY(-5px);
+}
+.theme-card[data-theme="blue"].selected {
+    box-shadow: 0 0 25px #2196f3, inset 0 0 15px rgba(33, 150, 243, 0.5);
+    transform: scale(1.05);
+}
+
+/* Фиолетовая тема */
+.theme-card[data-theme="purple"] {
+    background: linear-gradient(45deg, #9c27b0, #7b1fa2);
+    box-shadow: 0 4px 15px rgba(156, 39, 176, 0.2);
+}
+.theme-card[data-theme="purple"]:hover {
+    box-shadow: 0 6px 20px rgba(156, 39, 176, 0.4);
+    transform: translateY(-5px);
+}
+.theme-card[data-theme="purple"].selected {
+    box-shadow: 0 0 25px #9c27b0, inset 0 0 15px rgba(156, 39, 176, 0.5);
+    transform: scale(1.05);
+}
+
+/* RGB тема (отдельно) */
+.theme-card[data-theme="rgb"] {
+    background: linear-gradient(45deg, #ff6666, #66b3ff, #66cc66);
+    background-size: 300%;
+    box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
+}
+.theme-card[data-theme="rgb"]:hover {
+    box-shadow: 0 6px 20px rgba(255, 255, 255, 0.3);
+    transform: translateY(-5px);
+}
+.theme-card[data-theme="rgb"].selected {
+    animation: rgbGlow 5s linear infinite;
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.4);
+    transform: scale(1.05);
+}
+
+/* Стили для названий тем */
+.theme-name {
+    position: relative;
+    z-index: 2;
+    color: white;
+    font-weight: bold;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transition: transform 0.3s ease;
+}
+
+.theme-card:hover .theme-name {
+    transform: scale(1.1);
+}
+
+/* RGB анимация для элементов хедера */
+@keyframes rgbGlow {
+    0% { filter: hue-rotate(0deg); }
+    100% { filter: hue-rotate(360deg); }
+}
+
+/* Анимация для нижнего border */
+@keyframes rgbBorderGlow {
+    0% { border-bottom-color: #ff0000; }
+    33% { border-bottom-color: #00ff00; }
+    66% { border-bottom-color: #0000ff; }
+    100% { border-bottom-color: #ff0000; }
+}
+
+/* Стили для RGB-темы */
+body.rgb-theme header {
+    border-bottom-color: #ff0000;
+    animation: rgbBorderGlow 5s linear infinite;
+}
+
+body.rgb-theme header .neon-text,
+body.rgb-theme header .btn.neon-btn {
+    animation: rgbGlow 5s linear infinite !important;
+}
+
+/* Отключаем RGB анимацию для всего остального в header */
+body.rgb-theme header {
+    animation: none !important;
+}
+
+/* Анимация свечения для RGB темы */
+@keyframes rgbGlow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Специальные стили для RGB карточки */
+.theme-card[data-theme="rgb"]::before {
+    background: linear-gradient(45deg, #ff6666, #66b3ff, #66cc66);
+    background-size: 300%;
+    transition: none;
+}
+
+.theme-card[data-theme="rgb"].selected {
+    animation: rgbGlow 5s linear infinite;
+}
+
+/* Эффект пульсации при выборе */
+@keyframes selectPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.theme-card:active {
+    animation: selectPulse 0.3s ease;
+}
+
+/* Эффект волны при клике */
+.theme-card::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    z-index: 1;
+    transform: translate(-50%, -50%);
+    transition: width 0.6s ease-out, height 0.6s ease-out;
+}
+
+.theme-card:active::after {
+    width: 300px;
+    height: 300px;
+    opacity: 0;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .theme-options {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
     }
-  </style>
+    
+    .theme-card {
+        height: 100px;
+        padding: 1rem;
+    }
+    
+    .theme-name {
+        font-size: 1rem;
+    }
+}
+
+/* Стили для скроллбара настроек */
+.settings-panel, .settings-content, .settings-section {
+  max-height: 80vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--theme-color, #ff416c) rgba(0,0,0,0.2);
+}
+.settings-panel::-webkit-scrollbar,
+.settings-content::-webkit-scrollbar,
+.settings-section::-webkit-scrollbar {
+  width: 10px;
+  background: rgba(0,0,0,0.2);
+}
+.settings-panel::-webkit-scrollbar-thumb,
+.settings-content::-webkit-scrollbar-thumb,
+.settings-section::-webkit-scrollbar-thumb {
+  background: var(--theme-color, #ff416c);
+  border-radius: 5px;
+}
+.settings-panel::-webkit-scrollbar-thumb:hover,
+.settings-content::-webkit-scrollbar-thumb:hover,
+.settings-section::-webkit-scrollbar-thumb:hover {
+  background: var(--theme-glow-color, #ff4b2b);
+}
+
+/* Главный скроллбар для страницы настроек (как на главной) */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--theme-color, #ff416c);
+  border-radius: 5px;
+  transition: background 0.3s ease;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--theme-glow-color, #ff4b2b);
+}
+
+body {
+  overflow-y: scroll !important;
+  scrollbar-color: var(--theme-color, #ff416c) rgba(0,0,0,0.2);
+  scrollbar-width: thin;
+}
+    </style>
 </body>
+
 </html>

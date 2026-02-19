@@ -19,35 +19,29 @@
     </header>
 
     <main class="main-content container">
-      <form class="glass-card mx-auto p-4" action="/register" method="post" style="max-width: 500px;">
+      <div class="glass-card mx-auto p-4" style="max-width: 500px;">
         <h2 class="neon-subtitle text-center">📝 Создание аккаунта</h2>
         <div class="input-group">
-          <input type="text" name="username" class="neon-input" placeholder="Логин" required>
+          <input type="text" id="username" class="neon-input" placeholder="Логин" maxlength="20" required>
         </div>
         <div class="input-group">
-          <input type="password" name="password" class="neon-input" placeholder="Пароль" required>
+          <input type="password" id="password" class="neon-input" placeholder="Пароль" required>
         </div>
         <div class="input-group">
-          <select name="role" class="neon-select">
+          <select id="role" class="neon-select">
             <option value="user">🎮 Игрок</option>
             <option value="developer">👨💻 Разработчик</option>
             <option value="admin">👑 Администратор</option>
           </select>
         </div>
-        <button type="submit" class="btn neon-btn w-100">✨ Создать</button>
-      </form>
+        <button onclick="register()" class="btn neon-btn w-100">✨ Создать</button>
+        <p id="error-message" class="text-danger text-center mt-2" style="display: none;"></p>
+      </div>
     </main>
     <footer class="container text-center">
       <p class="neon-text-small">© 2023 GameVerse. Все права защищены.</p>
     </footer>
   </div>
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.has("error")) {
-        alert("Ошибка регистрации. Возможно, логин уже занят.");
-      }
-    });
-  </script>
+  <script src="/scripts/register.js"></script>
 </body>
 </html>

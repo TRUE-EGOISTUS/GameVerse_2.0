@@ -8,8 +8,47 @@
   --text-primary: rgba(255, 255, 255, 0.95);
   --text-secondary: rgba(255, 255, 255, 0.6);
   --gradient: linear-gradient(135deg, var(--neon-purple), var(--neon-blue));
+  /* Theme variables */
+  --theme-color: #ff0000; /* Default to true red */
+  --theme-secondary-color: #ff4b2b;
+  --theme-glow-color: rgba(255, 0, 0, 0.8);
+  --hover-shadow-color: rgba(255, 0, 0, 0.4);
+  --scrollbar-thumb-color: #ff416c; /* Fixed to red theme */
+  --scrollbar-red: #ff416c;
+  --scrollbar-yellow: #ffd700;
+  --scrollbar-green: #4caf50;
+  --scrollbar-blue: #2196f3;
+  --scrollbar-purple: #9c27b0;
+  --scrollbar-rgb: linear-gradient(45deg, #ff6666, #66b3ff, #66cc66);
+  --button-gradient: linear-gradient(135deg, var(--theme-color), var(--theme-secondary-color));
+  --transition-time: 0.2s;
+  --bg-gradient: linear-gradient(to bottom, #000000, #111111);
 }
 
+/* Scrollbar styles */
+::-webkit-scrollbar {
+    width: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: #2a2a2a;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--theme-glow-color) !important; /* Fixed red color */
+    border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #ff4b2b;
+}
+
+/* Firefox scrollbar */
+html {
+    scrollbar-color: var(--scrollbar-thumb-color);
+}
+
+/* Rest of the existing styles */
 * {
   margin: 0;
   padding: 0;
@@ -32,11 +71,24 @@ body {
   line-height: 1.6;
   overflow-x: hidden;
   position: relative;
+  overflow-y: auto;
 }
 
-body.light-mode {
-  background: #f5f5f5;
-  color: #333;
+/* Фон для главной страницы — всегда черный, canvas поверх */
+body.gradient-bg {
+  background: #181818 !important;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Canvas для анимированного фона */
+#physics-bg-canvas {
+  position: fixed;
+  top: 0; left: 0; width: 100vw; height: 100vh;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.7;
+  transition: opacity 0.5s;
 }
 
 /* Фоновые эффекты */
@@ -57,7 +109,7 @@ body::before {
       transparent 40%
     );
   z-index: -1;
-  animation: gridPulse 20s infinite;
+  animation: gridPulse 12s infinite;
 }
 
 @keyframes gridPulse {
@@ -150,22 +202,22 @@ header {
   font-size: 2.5rem;
   white-space: nowrap;
   margin: 0;
-  background: linear-gradient(135deg, #ff416c, #ff4b2b);
+  background: linear-gradient(135deg, var(--theme-color), var(--theme-secondary-color));
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
   text-transform: uppercase;
   letter-spacing: 2px;
-  text-shadow: 0 0 10px rgba(255, 65, 108, 0.8), 0 0 20px rgba(255, 65, 108, 0.6);
-  animation: neonGlow 2s infinite alternate;
+  text-shadow: 0 0 10px var(--theme-glow-color), 0 0 20px var(--theme-glow-color);
+  animation: neonGlow 12s infinite alternate;
 }
 
 @keyframes neonGlow {
   from {
-    text-shadow: 0 0 10px rgba(255, 65, 108, 0.8), 0 0 20px rgba(255, 65, 108, 0.6);
+    text-shadow: 0 0 10px var(--theme-glow-color), 0 0 20px var(--theme-glow-color);
   }
   to {
-    text-shadow: 0 0 20px rgba(255, 65, 108, 1), 0 0 30px rgba(255, 65, 108, 0.8);
+    text-shadow: 0 0 20px var(--theme-glow-color), 0 0 30px var(--theme-glow-color);
   }
 }
 
@@ -186,6 +238,8 @@ body.light-mode .neon-text {
   justify-content: flex-start;
   position: relative;
   z-index: 1;
+  overflow-y: auto;
+  overflow-x: hidden; /* Ensure scrollable content */
 }
 
 @media (max-width: 768px) {
@@ -197,12 +251,11 @@ body.light-mode .neon-text {
 
 /* Gaming-style buttons */
 .btn, .neon-btn, .play-btn, button[type="submit"], .rate-btn {
-  display: inline-flex;
   align-items: center;
   gap: 8px;
   margin: 0.5rem;
   padding: 0.8rem 1.5rem;
-  background: linear-gradient(135deg, #ff416c, #ff4b2b);
+  background: var(--button-gradient);
   border: none;
   border-radius: 8px;
   color: white;
@@ -213,6 +266,7 @@ body.light-mode .neon-text {
   position: relative;
   overflow: hidden;
   text-transform: uppercase;
+  text-align: center;
   letter-spacing: 1px;
   text-decoration: none;
   transform-origin: center;
@@ -235,16 +289,16 @@ body.light-mode .neon-text {
 
 .btn:hover, .neon-btn:hover, .play-btn:hover, .rate-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(255,65,108,0.4);
+  box-shadow: 0 5px 15px var(--theme-secondary-color);
   animation: buttonPulse 1.5s infinite;
 }
 
 @keyframes buttonPulse {
   0%, 100% {
-    box-shadow: 0 0 15px rgba(255, 65, 108, 0.5);
+    box-shadow: 0 0 15px var(--theme-color);
   }
   50% {
-    box-shadow: 0 0 25px rgba(255, 65, 108, 0.8);
+    box-shadow: 0 0 25px var(--theme-color);
   }
 }
 
@@ -264,7 +318,7 @@ body.light-mode .neon-text {
 
 .rate-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(255, 157, 0, 0.4);
+  box-shadow: 0 5px 15px var(--theme-glow-color);
 }
 
 /* Gaming-style cards */
@@ -273,22 +327,22 @@ body.light-mode .neon-text {
   flex-direction: column;
   gap: 1rem;
   padding: 2rem;
-  background: rgba(0,0,0,0.8);
-  border: 1px solid rgba(255,65,108,0.2);
+  background: rgba(0, 0, 0, 0.9);
+  border: 1px solid var(--glass-card-border-color, rgba(255,65,108,0.2));
   border-radius: 16px;
   margin: 1rem auto;
   max-width: 90%;
   text-align: left;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 65, 108, 0.3);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px var(--glass-card-border-color, rgba(255, 0, 0, 0.3));
   transition: all 0.3s ease;
   animation: fadeIn 0.5s ease forwards;
 }
 
 .glass-card:hover, .game-card:hover {
   transform: translateY(-5px);
-  border-color: rgba(255,65,108,0.5);
-  box-shadow: 0 10px 20px rgba(0,0,0,0.3), 
-              0 0 30px rgba(255,65,108,0.2);
+  border-color: var(--theme-glow-color);
+  box-shadow: 0 20px 30px rgba(0,0,0,0.3), 
+              0 0 40px var(--theme-glow-color);
 }
 
 /* Обновленные стили для карточек игр */
@@ -309,8 +363,8 @@ body.light-mode .neon-text {
   transform: translateY(-5px);
   box-shadow: 
     0 8px 20px rgba(0, 0, 0, 0.4),
-    0 0 20px rgba(255, 65, 108, 0.3);
-  border-color: rgba(255, 65, 108, 0.5);
+    0 0 20px var(--theme-glow-color);
+  border-color: var(--theme-glow-color); 
 }
 
 .game-cover-wrapper {
@@ -356,7 +410,7 @@ body.light-mode .neon-text {
   font-size: 1.2rem;
   font-weight: 600;
   margin: 0;
-  color: white;
+  color: var(--game-title-color);
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
   white-space: nowrap;
   overflow: hidden;
@@ -404,6 +458,7 @@ body.light-mode .neon-text {
   color: white;
   display: flex;
   align-items: center;
+  text-align: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -597,7 +652,7 @@ input[type="file"] {
   width: 100%;
   padding: 1rem;
   background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 65, 108, 0.3);
+  border: 1px solid var(--theme-glow-color);
   border-radius: 8px;
   color: white;
 }
@@ -622,12 +677,11 @@ input[type="file"] {
   text-transform: uppercase;
   letter-spacing: 1px;
   text-decoration: none;
-  text-align: center;
 }
 
 .file-upload label:hover {
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(255, 65, 108, 0.4);
+  box-shadow: 0 5px 15px var(--theme-glow-color);
   animation: buttonPulse 1.5s infinite;
 }
 
@@ -660,20 +714,6 @@ input[type="file"] {
   border-radius: 16px;
   border: 1px solid rgba(255, 65, 108, 0.3);
   position: relative;
-}
-
-/* Gaming-style scrollbars */
-::-webkit-scrollbar {
-  width: 12px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #ff416c, #ff4b2b);
-  border-radius: 6px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #ff4b2b, #ff416c);
 }
 
 /* Gaming-style footer */
@@ -737,7 +777,7 @@ footer {
 .filter-button:hover,
 .filter-button.active {
   background: rgba(255, 65, 108, 0.3);
-  border-color: rgba(255, 65, 108, 0.6);
+  border-color: var(--theme-glow-color);
   transform: translateY(-2px);
 }
 
@@ -781,7 +821,7 @@ footer {
 
 .genre-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(255, 65, 108, 0.4);
+  box-shadow: var(--theme-glow-color);
 }
 
 .genre-button.active {
@@ -913,7 +953,7 @@ footer {
 .dropdown-item:hover {
   background: rgba(255, 65, 108, 0.1);
   transform: translateX(5px);
-  color: #ff416c;
+
 }
 
 /* User profile improvements */
@@ -932,6 +972,7 @@ footer {
   opacity: 0.7;
   pointer-events: none;
   position: relative;
+  display: none; /* Скрыт по умолчанию */
 }
 
 .loading::after {
@@ -1060,7 +1101,7 @@ a {
 
 /* New styles for improved layout */
 .main-container {
-  margin-top: 100px; /* Отступ для учета высоты хедера */
+  margin-top: 0px; /* Отступ для учета высоты хедера */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1074,7 +1115,8 @@ a {
   width: 100%;
   display: flex;
   justify-content: center;
-  margin-bottom: 2rem; /* Добавляем отступ снизу */
+  margin-bottom: 2rem; 
+  margin-top: 150px;/* Добавляем отступ снизу */
 }
 
 .games-section {
@@ -1105,6 +1147,7 @@ a {
   top: 120px; /* Увеличиваем отступ от хедера */
   left: 20px;
   width: 200px;
+  margin-top: 80px;
   padding: 1rem;
   background: rgba(0, 0, 0, 0.8);
   border: 1px solid rgba(255, 65, 108, 0.3);
@@ -1189,7 +1232,7 @@ a {
 
 .genre-button, .filter-button {
   padding: 0.8rem 1.5rem;
-  background: linear-gradient(135deg, #ff416c, #ff4b2b);
+  background: var(--button-gradient);
   border: none;
   border-radius: 8px;
   color: white;
@@ -1204,7 +1247,7 @@ a {
 
 .genre-button:hover, .filter-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(255, 65, 108, 0.4);
+  box-shadow: 0 5px 15px var(--hover-shadow-color);
 }
 
 .genre-button.active, .filter-button.active {
@@ -1230,8 +1273,8 @@ a {
   max-width: 400px;
   height: 100vh;
   background: rgba(20,20,30,0.96);
-  border-right: 2px solid rgba(255,65,108,0.15);
-  box-shadow: 8px 0 32px 0 rgba(33,150,243,0.13), 0 0 0 1px #2196f322;
+  border-right: 2px solid var(--theme-glow-color);
+  border-left: 2px solid var(--theme-glow-color);
   padding: 2rem 1.5rem;
   display: flex;
   flex-direction: column;
@@ -1275,7 +1318,7 @@ a {
 }
 
 .descr-meta-row .meta-label {
-  color: var(--neon-blue);
+  color: var(--theme-glow-color);
   font-weight: 600;
   min-width: 80px;
 }
@@ -1308,6 +1351,7 @@ a {
   display: flex;
   flex-direction: column;
   gap: 2.5rem;
+  border-right: 2px solid var(--theme-glow-color);
 }
 
 @media (max-width: 900px) {
@@ -1324,6 +1368,7 @@ a {
     flex-direction: row;
     gap: 2rem;
     padding: 1.2rem 1rem;
+
   }
   .descr-right-panel {
     padding: 1.5rem 0.5rem;
@@ -1334,7 +1379,7 @@ a {
 .descr-title {
   font-size: 2.2rem;
   font-weight: bold;
-  color: var(--neon-blue);
+  color: var(--theme-glow-color);
   margin-bottom: 0.5rem;
   text-shadow: 0 2px 12px #2196f355;
   letter-spacing: 1.5px;
@@ -1342,7 +1387,7 @@ a {
 }
 
 .descr-author {
-  color: var(--text-secondary);
+  color: var(--theme-color);
   font-size: 1.1rem;
   margin-bottom: 1.5rem;
 }
@@ -1526,7 +1571,7 @@ a {
 }
 
 .add-review-form label {
-  color: var(--neon-blue);
+  color: var(--theme-color);
   font-weight: 600;
   margin-bottom: 0.3em;
 }
@@ -1536,7 +1581,6 @@ a {
   font-size: 1.2em;
   padding: 0.3em 0.7em;
   border-radius: 6px;
-  border: 1px solid #2196f3;
   background: #181828;
   color: #ffd700;
   font-weight: bold;
@@ -1545,7 +1589,7 @@ a {
 .add-review-form textarea {
   min-height: 60px;
   border-radius: 6px;
-  border: 1px solid #2196f3;
+  border: 1px solid var(--theme-glow-color);
   background: #181828;
   color: var(--text-primary);
   font-size: 1.05em;
@@ -1576,4 +1620,350 @@ a {
 .add-review-form button:active {
   transform: scale(0.96) rotate(-2deg);
   background: linear-gradient(135deg, #ff416c, #ffd700);
+}
+body.gradient-bg {
+  background: #000 !important; /* Абсолютно черный фон */
+}
+body.rgb-theme .neon-text,
+body.rgb-theme .btn,
+body.rgb-theme .neon-btn,
+body.rgb-theme .play-btn,
+body.rgb-theme .rate-btn,
+body.rgb-theme .game-card,
+body.rgb-theme .glass-card,
+body.rgb-theme .filter-button,
+body.rgb-theme .genre-button {
+  animation: rgbGlow 12s linear infinite;
+}
+@keyframes rgbGlow {
+  0% { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(360deg); }
+}
+
+/* Цветовые переменные для тем */
+body[data-theme="red"] {
+    --theme-color: #ff416c;
+    --theme-secondary-color: #ff4b2b;
+    --theme-glow-color: #ff416c;
+    --text-color: #fff;
+    --bg-gradient: linear-gradient(135deg, #1a1a1a, #3a1c26);
+}
+body[data-theme="yellow"] {
+    --theme-color: #ffd700;
+    --theme-secondary-color: #ffa500;
+    --theme-glow-color: #ffd700;
+    --text-color: #fff;
+    --bg-gradient: linear-gradient(135deg, #1a1a1a, #3a341c);
+}
+body[data-theme="green"] {
+    --theme-color: #4caf50;
+    --theme-secondary-color: #45a049;
+    --theme-glow-color: #4caf50;
+    --text-color: #fff;
+    --bg-gradient: linear-gradient(135deg, #1a1a1a, #1c3a1c);
+}
+body[data-theme="blue"] {
+    --theme-color: #2196f3;
+    --theme-secondary-color: #1e88e5;
+    --theme-glow-color: #2196f3;
+    --text-color: #fff;
+    --bg-gradient: linear-gradient(135deg, #1a1a1a, #1c263a);
+}
+body[data-theme="purple"] {
+    --theme-color: #9c27b0;
+    --theme-secondary-color: #7b1fa2;
+    --theme-glow-color: #9c27b0;
+    --text-color: #fff;
+    --bg-gradient: linear-gradient(135deg, #1a1a1a, #2c1c3a);
+}
+
+/* Применение переменных ко всем основным элементам */
+body,
+.gradient-bg {
+    background: var(--bg-gradient) !important;
+    color: var(--text-color) !important;
+}
+
+header {
+    border-bottom: 3px solid var(--theme-glow-color);
+    box-shadow: 0 0 15px var(--theme-glow-color);
+    background: rgba(0,0,0,0.7);
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.neon-text,
+.section-title,
+.genre-title,
+.neon-subtitle {
+    color: var(--theme-color) !important;
+    text-shadow: 0 0 10px var(--theme-glow-color), 0 0 20px var(--theme-glow-color);
+}
+
+.btn,
+.neon-btn,
+.filter-button,
+.genre-button,
+input[type="submit"],
+button {
+    background: var(--theme-color) !important;
+    color: var(--text-color) !important;
+    border: 1px solid var(--theme-glow-color) !important;
+    box-shadow: 0 0 10px var(--theme-color);
+    transition: background 0.3s, box-shadow 0.3s, border-color 0.3s;
+}
+
+.btn:hover,
+.neon-btn:hover,
+.filter-button:hover,
+.genre-button:hover,
+input[type="submit"]:hover,
+button:hover {
+    background: var(--theme-secondary-color) !important;
+    box-shadow: 0 0 20px var(--theme-color);
+    border-color: var(--theme-glow-color);
+}
+
+input,
+textarea,
+select {
+    background: rgba(0,0,0,0.5);
+    color: var(--text-color);
+    border: 1px solid var(--theme-glow-color);
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+    border-color: var(--theme-color);
+    box-shadow: 0 0 5px var(--theme-glow-color);
+}
+
+.glass-card,
+.game-card,
+.metric-card,
+.modal-content {
+    border: 1.5px solid var(--glass-card-border-color, var(--theme-glow-color));
+    background: rgba(30,30,40,0.97);
+    box-shadow: 0 2px 16px var(--glass-card-glow, var(--theme-glow-color));
+    color: var(--text-color);
+}
+
+/* RGB тема */
+body.rgb-theme .neon-text,
+body.rgb-theme .btn,
+body.rgb-theme .neon-btn,
+body.rgb-theme .section-title,
+body.rgb-theme .genre-title,
+body.rgb-theme .modal-content .neon-subtitle,
+body.rgb-theme .modal-content .neon-label,
+body.rgb-theme .logo-glow,
+body.rgb-theme .loading-spinner {
+    animation: rgbGlow 12s linear infinite !important;
+}
+/* Существующие стили остаются без изменений, добавляем новые стили ниже */
+
+/* Analytics page layout */
+.analytics-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  background: var(--dark-bg);
+  min-height: 100vh;
+}
+
+/* Analytics page header */
+.analytics-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  animation: fadeIn 0.5s ease forwards;
+}
+
+.analytics-header h1 {
+  font-size: 2.5rem;
+  color: var(--neon-blue);
+  text-shadow: 0 0 10px var(--neon-blue), 0 0 20px var(--neon-blue);
+  animation: neonGlow 1.5s infinite alternate;
+}
+
+/* Back button */
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1.5rem;
+  background: var(--button-gradient);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.back-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px var(--hover-shadow-color);
+  animation: buttonPulse 1.5s infinite;
+}
+
+/* Game statistics */
+.stats-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+.stats-card {
+  background: var(--glass-bg);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 600px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  transition: all 0.3s ease;
+}
+
+.stats-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--neon-blue);
+  box-shadow: 0 20px 30px rgba(0, 0, 0, 0.3), 0 0 40px var(--neon-blue);
+}
+
+.stats-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.stats-item h3 {
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+}
+
+.stats-item span {
+  font-size: 2rem;
+  font-weight: bold;
+  color: var(--neon-purple);
+  text-shadow: 0 0 10px var(--neon-purple);
+}
+
+/* Reviews section */
+.reviews-section {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.reviews-title {
+  font-size: 2rem;
+  color: var(--theme-color);
+  text-align: center;
+  margin-bottom: 1.5rem;
+  text-shadow: 0 0 10px var(--theme-secondary-color);
+}
+
+.review-card {
+  background: var(--glass-bg);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  transition: all 0.3s ease;
+}
+
+.review-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--neon-purple);
+  box-shadow: 0 20px 30px rgba(0, 0, 0, 0.3), 0 0 40px var(--neon-purple);
+}
+
+.review-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.review-author {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: var(--neon-blue);
+}
+
+.review-date {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.review-text {
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+/* Loading state */
+.loading {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.5rem;
+  color: var(--neon-blue);
+  text-shadow: 0 0 10px var(--neon-blue);
+}
+.neon-link{
+  color:var(--theme-color);
+}
+.modal-header {
+  position: relative;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.modal-header h2 {
+  font-size: 1.5rem;
+  color: var(--theme-color);
+  text-shadow: 0 0 5px var(--theme-color);
+  margin: 0;
+}
+
+.modal-header .close-button {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-size: 1.4rem;
+  color: var(--theme-color);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.3s ease, transform 0.2s ease;
+}
+
+.modal-header .close-button:hover {
+  opacity: 1;
+  transform: scale(1.2);
+}
+#banReasonsPanel {
+  max-height: 200px;
+  overflow-y: auto;
+  color: #fff;
+}
+#banReasonsList {
+  list-style: none;
+  padding: 0;
+}
+#banReasonsList li {
+  margin-bottom: 5px;
 }

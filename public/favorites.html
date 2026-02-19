@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="styles.css">
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
 </head>
+
 <body class="gradient-bg">
   <header>
     <div class="header-content">
@@ -19,212 +20,43 @@
     </div>
   </header>
 
+  <!-- Вынес шаблон сюда, вне контейнера -->
+  <template id="game-card-template">
+    <div class="game-card">
+      <div class="game-cover-wrapper">
+        <div class="game-cover-placeholder">
+          <span>🎮</span>
+          <span class="no-cover-text">Нет обложки</span>
+        </div>
+        <img class="game-cover" src="" alt="Game cover"
+          onerror="this.style.display='none'; this.previousElementSibling.style.display='flex';">
+        <div class="game-rating">
+          <span class="rating-value"></span>
+          <span class="rating-star">★</span>
+        </div>
+        <button class="action-button info-action" title="Подробнее">
+          <span>ℹ️</span>
+        </button>
+        <button class="action-button favorite-action" title="Убрать из избранного">
+          <span>💔</span>
+        </button>
+      </div>
+      <div class="game-info">
+        <h3 class="game-title"></h3>
+      </div>
+    </div>
+  </template>
+
   <main class="main-content">
     <section class="games-section">
       <h2 class="section-title">⭐ Ваши избранные игры</h2>
       <p id="userStatus" class="user-status">Статус: <span>Неизвестно</span></p>
       <div class="games-grid" id="favoritesGrid">
-        <template id="game-card-template">
-          <div class="game-card">
-            <div class="game-cover-wrapper">
-              <div class="game-cover-placeholder">
-                <span>🎮</span>
-                <span class="no-cover-text">Нет обложки</span>
-              </div>
-              <img class="game-cover" src="" alt="Game cover" onerror="this.style.display='none'; this.previousElementSibling.style.display='flex';">
-              <div class="game-rating">
-                <span class="rating-value"></span>
-                <span class="rating-star">★</span>
-              </div>
-              <button class="action-button info-action" title="Подробнее">
-                <span>ℹ️</span>
-              </button>
-              <button class="action-button favorite-action" title="Убрать из избранного">
-                <span>💔</span>
-              </button>
-            </div>
-            <div class="game-info">
-              <h3 class="game-title"></h3>
-            </div>
-          </div>
-        </template>
+        <!-- Здесь будут рендериться карточки игр -->
       </div>
     </section>
   </main>
-
-  <script>
-    async function loadFavorites() {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          alert('Требуется авторизация');
-          window.location.href = '/login.html';
-          return;
-        }
-
-        const [favoritesResponse, userResponse] = await Promise.all([
-          fetch('/favorites', {
-            headers: { 'Authorization': `Bearer ${token}` }
-          }),
-          fetch('/user-data', {
-            headers: { 'Authorization': `Bearer ${token}` }
-          })
-        ]);
-
-        if (!favoritesResponse.ok || !userResponse.ok) {
-          const error = await (favoritesResponse.ok ? userResponse : favoritesResponse).json();
-          throw new Error(error.error || 'Ошибка загрузки данных');
-        }
-
-        const favorites = await favoritesResponse.json();
-        const user = await userResponse.json();
-
-        const userStatusEl = document.getElementById('userStatus').querySelector('span');
-        userStatusEl.textContent = user.online ? 'Онлайн' : 'Оффлайн';
-
-        // Call renderGames with retry logic
-        await renderGamesWithRetry(favorites);
-      } catch (err) {
-        console.error("Ошибка в loadFavorites:", err);
-        alert(err.message || "Не удалось загрузить избранное");
-        document.getElementById('favoritesGrid').innerHTML = '<p class="no-games">Игры не найдены</p>';
-      }
-    }
-
-    async function renderGamesWithRetry(games, retries = 3, delay = 100) {
-      for (let attempt = 1; attempt <= retries; attempt++) {
-        const template = document.getElementById('game-card-template');
-        if (template) {
-          renderGames(games);
-          return;
-        }
-        console.warn(`Попытка ${attempt}: Шаблон 'game-card-template' не найден. Ожидание ${delay}мс...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
-      console.error("Не удалось найти шаблон 'game-card-template' после всех попыток");
-      document.getElementById('favoritesGrid').innerHTML = '<p class="no-games">Ошибка: шаблон игры не найден</p>';
-    }
-
-    function renderGames(games) {
-      const gamesContainer = document.getElementById('favoritesGrid');
-      const template = document.getElementById('game-card-template');
-
-      if (!template) {
-        console.error("Template with ID 'game-card-template' not found");
-        gamesContainer.innerHTML = '<p class="no-games">Ошибка: шаблон игры не найден</p>';
-        return;
-      }
-
-      gamesContainer.innerHTML = "";
-
-      if (!games || games.length === 0) {
-        gamesContainer.innerHTML = '<p class="no-games">Игры не найдены</p>';
-        return;
-      }
-
-      games.forEach((game) => {
-        const clone = template.content.cloneNode(true);
-        
-        const cover = clone.querySelector(".game-cover");
-        const placeholder = clone.querySelector(".game-cover-placeholder");
-        if (game.cover && typeof game.cover === "string" && game.cover.startsWith("data:")) {
-          cover.src = game.cover;
-          cover.style.display = "";
-          placeholder.style.display = "none";
-        } else {
-          cover.src = "";
-          cover.style.display = "none";
-          placeholder.style.display = "flex";
-        }
-
-        clone.querySelector(".game-title").textContent = game.title || game.name || "Без названия";
-
-        const rating = getAverageRatingValue(game.ratings);
-        clone.querySelector(".rating-value").textContent = rating.toFixed(1);
-
-        const actionButton = clone.querySelector(".action-button.info-action");
-        actionButton.addEventListener("click", (e) => {
-          e.stopPropagation();
-          window.open(`descr_game.html?id=${game.id}`, "_blank");
-        });
-
-        const favoriteButton = clone.querySelector(".action-button.favorite-action");
-        favoriteButton.addEventListener("click", (e) => {
-          e.stopPropagation();
-          toggleFavorite(game.id);
-        });
-
-        const card = clone.querySelector(".game-card");
-        card.style.cursor = "pointer";
-        card.addEventListener("click", async () => {
-          const token = localStorage.getItem('token');
-          const basePath = `${game.path || `/games/${game.id}/simple_game/index.html`}`;
-          const url = basePath.startsWith('/games/') ? basePath : `/games/${game.id}/${basePath}`;
-
-          fetch(`/games/${game.id}/view`, {
-            method: "POST",
-            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-          }).catch(console.error);
-
-          window.open(url, "_blank");
-        });
-
-        gamesContainer.appendChild(clone);
-      });
-    }
-
-    async function toggleFavorite(gameId) {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`/favorites/remove/${gameId}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || 'Ошибка удаления из избранного');
-        }
-
-        loadFavorites();
-      } catch (err) {
-        console.error("Ошибка в toggleFavorite:", err);
-        alert(err.message || "Не удалось убрать игру из избранного");
-      }
-    }
-
-    async function logout() {
-      try {
-        const response = await fetch('/logout', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        });
-        if (!response.ok) throw new Error('Ошибка выхода');
-        localStorage.removeItem('token');
-        window.location.href = 'index.html';
-      } catch (err) {
-        console.error('Ошибка выхода:', err);
-        alert(err.message);
-      }
-    }
-
-    function getAverageRatingValue(ratings) {
-      if (!ratings || ratings.length === 0) return 0;
-      return ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length;
-    }
-
-    // Ensure DOM is fully loaded before calling loadFavorites
-    document.addEventListener("DOMContentLoaded", () => {
-      console.log("DOM fully loaded for favorites.html");
-      loadFavorites();
-    });
-  </script>
-
+  <script src="/scripts/favorites.js"></script>
   <style>
     .gradient-bg {
       background: var(--dark-bg);
@@ -233,7 +65,7 @@
     .section-title {
       font-size: 2rem;
       color: #ff416c;
-      text-shadow: 0 0 10px rgba(255, 65, 108, 0.8);
+      text-shadow: 0 0 10px var(--theme-color);
       margin-bottom: 1.5rem;
       text-align: center;
     }
@@ -335,6 +167,11 @@
     .action-button:hover {
       background: rgba(255, 65, 108, 0.9);
       color: white;
+    }
+
+    /* Удалены стили для скроллбара, если были */
+    body {
+      overflow-y: auto;
     }
   </style>
 </body>

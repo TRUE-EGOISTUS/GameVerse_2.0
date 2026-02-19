@@ -41,8 +41,13 @@
             </div>
 
             <div class="input-group">
+                <label>Теги (через запятую, только буквы, цифры, пробелы)</label>
+                <input type="text" id="tags" name="tags" class="neon-input" placeholder="кликер, простая, поле">
+            </div>
+
+            <div class="input-group">
                 <label>Обложка игры</label>
-                <input type="file" id="cover" name="cover" accept="image/*" class="neon-input">
+                <input type="file" id="cover" name="cover" accept="image/png,image/jpeg" class="neon-input">
                 <img id="coverPreview" style="max-width: 200px; margin-top: 10px; display: none;">
             </div>
 
@@ -50,104 +55,6 @@
         </form>
     </main>
 
-    <script>
-        const gameId = new URLSearchParams(window.location.search).get('id');
-        
-        // Загрузка данных игры
-        async function loadGameData() {
-            try {
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    alert('Необходима авторизация');
-                    window.location.href = '/login.html';
-                    return;
-                }
-
-                const response = await fetch(`/games/${gameId}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (!response.ok) throw new Error('Ошибка загрузки данных');
-                
-                const game = await response.json();
-                
-                // Заполняем форму
-                document.getElementById('title').value = game.title || '';
-                document.getElementById('description').value = game.description || '';
-                document.getElementById('genre').value = game.genre || 'Аркада';
-                
-                // Показываем текущую обложку
-                if (game.cover) {
-                    const preview = document.getElementById('coverPreview');
-                    preview.src = game.cover;
-                    preview.style.display = 'block';
-                }
-            } catch (err) {
-                console.error('Ошибка:', err);
-                alert('Ошибка загрузки данных игры');
-            }
-        }
-
-        // Обработка отправки формы
-        document.getElementById('editForm').onsubmit = async (e) => {
-            e.preventDefault();
-            
-            try {
-                const token = localStorage.getItem('token');
-                if (!token) throw new Error('Необходима авторизация');
-
-                const formData = new FormData();
-                formData.append('title', document.getElementById('title').value);
-                formData.append('description', document.getElementById('description').value);
-                formData.append('genre', document.getElementById('genre').value);
-
-                // Добавляем файл обложки, если он был выбран
-                const coverFile = document.getElementById('cover').files[0];
-                if (coverFile) {
-                    formData.append('cover', coverFile);
-                }
-
-                const response = await fetch(`/games/${gameId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: formData
-                });
-
-                if (!response.ok) throw new Error('Ошибка сохранения');
-
-                const result = await response.json();
-                if (result.success) {
-                    alert('Изменения сохранены успешно!');
-                    window.location.href = 'dashboard.html';
-                } else {
-                    throw new Error(result.error || 'Неизвестная ошибка');
-                }
-            } catch (err) {
-                console.error('Ошибка:', err);
-                alert('Ошибка при сохранении изменений: ' + err.message);
-            }
-        };
-
-        // Предпросмотр выбранной обложки
-        document.getElementById('cover').onchange = function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const preview = document.getElementById('coverPreview');
-                    preview.src = e.target.result;
-                    preview.style.display = 'block';
-                };
-                reader.readAsDataURL(file);
-            }
-        };
-
-        // Загружаем данные при загрузке страницы
-        document.addEventListener('DOMContentLoaded', loadGameData);
-    </script>
+    <script src ="/scripts/edit-metadata.js"></script>
 </body>
 </html>

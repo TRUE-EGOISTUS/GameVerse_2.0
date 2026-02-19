@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
   <meta charset="UTF-8">
   <title>Описание игры — GameVerse</title>
@@ -7,10 +8,39 @@
   <link rel="stylesheet" href="styles.css">
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    html { scroll-behavior: smooth; }
-    body { background: var(--dark-bg); }
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background: var(--dark-bg);
+      overflow-y: auto;
+      scrollbar-width: thin;
+      /* Для Firefox */
+      -ms-overflow-style: scrollbar;
+      /* Для Internet Explorer и Edge */
+    }
+
+    body::-webkit-scrollbar {
+      width: 8px;
+      background-color: var(--dark-bg);
+    }
+
+    body::-webkit-scrollbar-thumb {
+      background-color: var(--scrollbar-thumb-color);
+      border-radius: 10px;
+    }
+
+    body::-webkit-scrollbar-thumb:hover {
+      background-color: var(--scrollbar-thumb-hover-color);
+    }
+
+    .descr-edit-btn {
+      margin-top: 1em;
+    }
   </style>
 </head>
+
 <body>
   <div class="descr-layout">
     <aside class="descr-left-panel" id="leftPanel">
@@ -22,193 +52,7 @@
       </div>
     </main>
   </div>
-  <script>
-    const gameId = new URLSearchParams(window.location.search).get('id');
-    let currentUser = null;
-    let gameData = null;
-    let ratings = [];
-    let token = localStorage.getItem('token');
-
-    async function fetchGameData(scrollToReviews = false) {
-      if (!gameId) {
-        alert('Игра не указана');
-        window.location.href = '/';
-        return;
-      }
-      try {
-        const res = await fetch(`/games/${gameId}`, {
-          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-        });
-        if (!res.ok) throw new Error('Ошибка загрузки игры');
-        gameData = await res.json();
-        ratings = Array.isArray(gameData.ratings) ? gameData.ratings : [];
-        if (token) {
-          const userRes = await fetch('/user-data', { headers: { 'Authorization': `Bearer ${token}` } });
-          if (userRes.ok) currentUser = await userRes.json();
-        }
-        renderLeftPanel();
-        renderMain(scrollToReviews);
-      } catch (err) {
-        alert('Ошибка загрузки данных: ' + err.message);
-        window.location.href = '/';
-      }
-    }
-
-    function renderLeftPanel() {
-      const g = gameData;
-      const left = document.getElementById('leftPanel');
-      left.innerHTML = `
-        <img class="descr-cover" src="${g.cover ? g.cover : ''}" alt="Обложка" onerror="this.style.display='none'">
-        <div class="descr-meta">
-          <div class="descr-title">${g.title || g.name || 'Без названия'}</div>
-          <div class="descr-meta-row">
-            <span class="meta-label">Оценка:</span>
-            <span>${getAvgRating(ratings).toFixed(1)} ★</span>
-          </div>
-          <div class="descr-meta-row">
-            <span class="meta-label">Автор:</span>
-            <span>${g.author || 'Неизвестно'}</span>
-          </div>
-          <div class="descr-meta-row">
-            <span class="meta-label">Просмотры:</span>
-            <span>${g.views || 0}</span>
-          </div>
-          <div class="descr-meta-row">
-            <span class="meta-label">Жанр:</span>
-            <span>${g.genre || '—'}</span>
-          </div>
-          <div class="descr-meta-row">
-            <span class="meta-label">Теги:</span>
-            <span class="descr-tags">${(g.tags || []).map(t => `<span class="descr-tag">${t}</span>`).join('') || '—'}</span>
-          </div>
-          <div class="descr-meta-row">
-            <span class="meta-label">Дата:</span>
-            <span>${g.uploadDate ? new Date(g.uploadDate).toLocaleDateString() : '—'}</span>
-          </div>
-        </div>
-      `;
-    }
-
-    function renderMain(scrollToReviews = false) {
-      const g = gameData;
-      const main = document.getElementById('descrMain');
-      let description = g.description || g.desc || 'Описание отсутствует.';
-      const ratingCounts = [0,0,0,0,0,0];
-      ratings.forEach(r => {
-        const val = Math.round(Number(r.rating));
-        if (val >= 1 && val <= 5) ratingCounts[val]++;
-      });
-      const totalRatings = ratings.length;
-      let bars = '';
-      for (let i = 5; i >= 1; i--) {
-        const count = ratingCounts[i];
-        const percent = totalRatings ? (count / totalRatings * 100) : 0;
-        bars += `
-          <div class="rating-bar-row">
-            <span class="rating-bar-label">${i} ★</span>
-            <div class="rating-bar">
-              <div class="rating-bar-inner rating-bar-${i}" style="width:${percent}%;"></div>
-            </div>
-            <span class="rating-bar-count">${count}</span>
-          </div>
-        `;
-      }
-      let reviewsHtml = '';
-      if (ratings.length === 0) {
-        reviewsHtml = `<div style="color:var(--text-secondary);margin-bottom:1.5em;">Пока нет отзывов.</div>`;
-      } else {
-        reviewsHtml = ratings.slice().reverse().map((r, idx) => `
-          <div class="review-card" style="animation-delay:${0.05*idx}s;">
-            <div class="review-header">
-              <span class="review-author">👤 ${r.user || 'Аноним'}</span>
-              <span class="review-rating">★ ${r.rating}</span>
-              <span class="review-date">${r.date ? new Date(r.date).toLocaleString() : ''}</span>
-            </div>
-            <div class="review-text">${r.comment ? escapeHtml(r.comment) : '<span style="color:var(--text-secondary)">Без комментария</span>'}</div>
-          </div>
-        `).join('');
-      }
-      let addReviewForm = '';
-      if (token && currentUser) {
-        addReviewForm = `
-          <form class="add-review-form" id="addReviewForm">
-            <label>Ваша оценка (1-5): <input type="number" name="rating" min="1" max="5" required></label>
-            <label>Комментарий:<br>
-              <textarea name="comment" maxlength="500" placeholder="Ваш отзыв..."></textarea>
-            </label>
-            <button type="submit">Оставить отзыв</button>
-          </form>
-        `;
-      } else {
-        addReviewForm = `<div style="color:var(--text-secondary);margin-top:1.5em;">Войдите, чтобы оставить отзыв.</div>`;
-      }
-      main.innerHTML = `
-        <div class="descr-author">Автор: ${g.author || '—'}</div>
-        <div class="descr-description">${escapeHtml(description)}</div>
-        <div class="rating-summary-block">
-          <div class="rating-summary-row">
-            <span class="rating-big-value">${getAvgRating(ratings).toFixed(1)}</span>
-            <span class="rating-star-big">★</span>
-            <div class="rating-bars">${bars}</div>
-          </div>
-          <div style="color:var(--text-secondary);font-size:1.05em;">Всего отзывов: ${totalRatings}</div>
-        </div>
-        <div class="reviews-section" id="reviewsSection">
-          <div class="reviews-title">Отзывы игроков</div>
-          <div id="reviewsList">${reviewsHtml}</div>
-          ${addReviewForm}
-        </div>
-      `;
-      const form = document.getElementById('addReviewForm');
-      if (form) {
-        form.onsubmit = async function(e) {
-          e.preventDefault();
-          const rating = form.rating.value;
-          const comment = form.comment.value;
-          try {
-            const resp = await fetch(`/games/${gameId}/rate`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-              },
-              body: JSON.stringify({ rating, comment })
-            });
-            if (!resp.ok) {
-              const data = await resp.json().catch(()=>({}));
-              throw new Error(data.error || 'Ошибка отправки отзыва');
-            }
-            await fetchGameData(true);
-            setTimeout(() => {
-              document.getElementById('reviewsSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 200);
-          } catch (err) {
-            alert('Ошибка: ' + err.message);
-          }
-        };
-      }
-      if (scrollToReviews) {
-        setTimeout(() => {
-          document.getElementById('reviewsSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 200);
-      }
-    }
-
-    function getAvgRating(ratings) {
-      if (!ratings || !ratings.length) return 0;
-      return ratings.reduce((s, r) => s + Number(r.rating), 0) / ratings.length;
-    }
-
-    function escapeHtml(str) {
-      return (str || '').replace(/[&<>"']/g, function(m) {
-        return ({
-          '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-        })[m];
-      });
-    }
-
-    document.addEventListener('DOMContentLoaded', () => fetchGameData());
-  </script>
+  <script src="/scripts/descr_game.js"></script>
 </body>
+
 </html>
-``` 

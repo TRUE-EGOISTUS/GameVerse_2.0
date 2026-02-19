@@ -1,0 +1,58 @@
+{
+  "jsRules": [
+    { "pattern": "eval\\s*\\(", "weight": 50, "flags": "i" },
+    { "pattern": "new\\s+Function\\s*\\(", "weight": 50, "flags": "i" },
+    { "pattern": "setTimeout\\s*\\(\\s*['\"][^'\"]*['\"]", "weight": 5 },
+    { "pattern": "setInterval\\s*\\(\\s*['\"][^'\"]*['\"]", "weight": 5 },
+    { "pattern": "document\\.write\\s*\\(", "weight": 10, "flags": "i" },
+    { "pattern": "fetch\\s*\\(\\s*['\"`]https?:\\/\\/(?!localhost|127\\.0\\.0\\.1)", "weight": 40, "flags": "i" },
+    { "pattern": "import\\s*\\(", "weight": 20, "flags": "i" },
+    { "pattern": "require\\s*\\(", "weight": 3, "flags": "i" },
+    { "pattern": "atob\\s*\\(", "weight": 30, "flags": "i" },
+    { "pattern": "btoa\\s*\\(", "weight": 10, "flags": "i" },
+    { "pattern": "Buffer\\.from\\s*\\(.*['\"]base64['\"]", "weight": 20, "flags": "i" },
+    { "pattern": "WebAssembly\\.", "weight": 15, "flags": "i" },
+    { "pattern": "crypto\\.subtle", "weight": 3, "flags": "i" },
+    { "pattern": "window\\[['\"']eval['\"']\\]", "weight": 50, "flags": "i" },
+    { "pattern": "Function\\s*\\(", "weight": 50, "flags": "i" },
+    { "pattern": "powershell|cmd\\.exe|bash|sh|shell\\.application|wscript\\.shell", "weight": 30, "flags": "i" },
+    { "pattern": "alert\\s*\\(", "weight": 50, "flags": "i" },
+    { "pattern": "confirm\\s*\\(", "weight": 0, "flags": "i" },
+    { "pattern": "document\\.createElement\\s*\\(", "weight": 2, "flags": "i" },
+    { "pattern": "addEventListener\\s*\\(", "weight": 2, "flags": "i" },
+    { "pattern": "requestAnimationFrame\\s*\\(", "weight": 3, "flags": "i" },
+    { "pattern": "exec\\s*\\(", "weight": 20, "flags": "i" },
+    { "pattern": "maliciousFunction\\s*\\(", "weight": 50, "flags": "i" },
+    { "pattern": "new\\s+obfuscator\\s*\\(", "weight": 50, "flags": "i" },
+    { "pattern": "document\\.cookie", "weight": 30, "flags": "i" }
+  ],
+  "jsAllowPatterns": [
+    "document\\.createElement\\s*\\(\\s*['\"](?:div|span|button|p|canvas)['\"]\\s*\\)",
+    "addEventListener\\s*\\(\\s*['\"](?:click|keydown|keyup|change|animationend|pointerdown|pointermove|pointerup)['\"]\\s*\\)",
+    "requestAnimationFrame\\s*\\(\\s*[a-zA-Z_][a-zA-Z0-9_]*\\s*\\)",
+    "fetch\\s*\\(\\s*['\"`]https?:\\/\\/(?:localhost|127\\.0\\.0\\.1|api\\.example\\.com|api\\.user\\.com|cdn\\.yourdomain\\.com)",
+    "setTimeout\\s*\\(\\s*[a-zA-Z_][a-zA-Z0-9_]*\\s*,\\s*\\d+\\s*\\)"
+  ],
+  "thresholds": {
+    "pass": 0,
+    "warn": 50,
+    "block": 75,
+    "trustedBlock": 100
+  },
+  "blockThreshold": 75,
+  "mimeTypes": {
+    "js": ["application/javascript", "text/javascript", "text/plain"],
+    "html": ["text/html"],
+    "css": ["text/css"],
+    "wasm": ["application/wasm"],
+    "svg": ["image/svg+xml"],
+    "json": ["application/json"],
+    "txt": ["text/plain"],
+    "png": ["image/png"],
+    "jpg": ["image/jpeg"],
+    "jpeg": ["image/jpeg"],
+    "gif": ["image/gif"],
+    "webp": ["image/webp"],
+    "ico": ["image/x-icon", "image/vnd.microsoft.icon"]
+  }
+}

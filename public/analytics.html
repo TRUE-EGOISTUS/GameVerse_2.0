@@ -1,152 +1,309 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Аналитика игры — GameVerse</title>
-  <link rel="stylesheet" href="styles.css">
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body>
-  <header>
-    <div class="header-content">
-      <h1 class="neon-text">📊 АНАЛИТИКА ИГРЫ</h1>
-      <nav class="nav-panel">
-        <a href="dashboard.html" class="btn neon-btn">
-          <span class="header-icon">←</span>Назад
-        </a>
-      </nav>
-    </div>
-  </header>
-
-  <main class="main-content">
-    <div class="glass-card">
-      <h2 class="neon-subtitle" id="gameTitle">📈 Статистика игры</h2>
-      <div class="chart-container">
-        <canvas id="statsChart"></canvas>
-      </div>
-      <!-- Removed daily views chart -->
-      <div class="metrics-grid">
-        <div class="metric-card">
-          <h3>👀 Просмотры</h3>
-          <p id="viewsCount">0</p>
-        </div>
-        <div class="metric-card">
-          <h3>⭐ Средний рейтинг</h3>
-          <p id="avgRating">0</p>
-        </div>
-        <div class="metric-card">
-          <h3>💬 Отзывы</h3>
-          <p id="reviewsCount">0</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="reviews-section glass-card">
-      <h2 class="neon-subtitle">💬 Последние отзывы</h2>
-      <div id="reviewsList" class="reviews-list"></div>
-    </div>
-  </main>
-
-  <script>
-    // Получаем ID игры из URL
-    const gameId = new URLSearchParams(window.location.search).get('id');
-
-    if (!gameId) {
-      alert('Игра не указана');
-      window.location.href = 'dashboard.html';
-    }
-
-    function renderReviews(reviews) {
-      const container = document.getElementById('reviewsList');
-      container.innerHTML = reviews.map(review => `
-        <div class="review-card">
-          <div class="review-header">
-            <span class="review-author">👤 ${review.user}</span>
-            <span class="review-rating">⭐ ${review.rating}/5</span>
-            <span class="review-date">${new Date(review.date).toLocaleDateString()}</span>
-          </div>
-          <p class="review-text">${review.comment || 'Без комментария'}</p>
-        </div>
-      `).join('');
-    }
-
-    // Загрузка данных аналитики
-    async function loadAnalytics() {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          alert('Необходима авторизация');
-          window.location.href = '/login.html';
-          return;
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Аналитика игры — GameVerse</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            overflow-y: auto;
+            background: var(--bg-gradient);
         }
 
-        const [analyticsRes, reviewsRes] = await Promise.all([
-          fetch(`/game-analytics/${gameId}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          }),
-          fetch(`/games/${gameId}/reviews`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          })
-        ]);
+        /* Контейнер страницы */
+        .analytics-container {
+            max-width: 1400px;
+            margin: 100px auto 2rem;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            animation: fadeIn 0.7s ease forwards;
+        }
 
-        if (!analyticsRes.ok) throw new Error('Ошибка загрузки аналитики');
-        if (!reviewsRes.ok) throw new Error('Ошибка загрузки отзывов');
+        /* Заголовок */
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
 
-        const analytics = await analyticsRes.json();
-        const reviews = await reviewsRes.json();
+        .neon-text {
+            font-size: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            animation: neonGlow 2s infinite alternate;
+        }
 
-        // Обновляем метрики
-        document.getElementById('viewsCount').textContent = analytics.views;
-        document.getElementById('avgRating').textContent = analytics.averageRating.toFixed(1);
-        document.getElementById('reviewsCount').textContent = analytics.ratings;
+        .nav-panel .neon-btn {
+            padding: 0.7rem 1.5rem;
+            font-size: 0.9rem;
+            background: var(--button-gradient);
+            border-radius: 8px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
 
-        // Создаём график
-        const ctx = document.getElementById('statsChart').getContext('2d');
-        new Chart(ctx, {
-          type: 'bar',
-          data: {
-            labels: ['Просмотры', 'Средний рейтинг', 'Отзывы'],
-            datasets: [{
-              label: 'Статистика',
-              data: [
-                analytics.views,
-                analytics.averageRating,
-                analytics.ratings
-              ],
-              backgroundColor: [
-                'rgba(54, 162, 235, 0.7)',
-                'rgba(255, 206, 86, 0.7)',
-                'rgba(75, 192, 192, 0.7)'
-              ],
-              borderColor: [
-                'rgba(54, 162, 235, 1)',
-                'rgba(255, 206, 86, 1)',
-                'rgba(75, 192, 192, 1)'
-              ],
-              borderWidth: 1
-            }]
-          },
-          options: {
-            scales: {
-              y: {
-                beginAtZero: true
-              }
+        .nav-panel .neon-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px var(--hover-shadow-color);
+        }
+
+        /* Карточка статистики */
+        .glass-card {
+            background: rgba(20, 20, 30, 0.95);
+            border: 1.5px solid var(--theme-glow-color);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px var(--theme-glow-color);
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--theme-color);
+        }
+
+        .neon-subtitle {
+            font-size: 1.8rem;
+            color: var(--theme-color);
+            text-shadow: 0 0 10px var(--theme-glow-color);
+            margin-bottom: 1.5rem;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        /* График */
+        .chart-container {
+            position: relative;
+            max-width: 800px;
+            margin: 0 auto 2rem;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 12px;
+            padding: 1rem;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        canvas#statsChart {
+            width: 100% !important;
+            height: 300px !important;
+        }
+
+        /* Метрики */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .metric-card {
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid var(--theme-glow-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px var(--hover-shadow-color);
+        }
+
+        .metric-card h3 {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+        }
+
+        .metric-card p {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--theme-color);
+            text-shadow: 0 0 10px var(--theme-glow-color);
+        }
+
+        /* Отзывы */
+        .reviews-section {
+            background: rgba(20, 20, 30, 0.95);
+            border: 1.5px solid var(--theme-glow-color);
+            border-radius: 16px;
+            padding: 2rem;
+        }
+
+        .reviews-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .review-card {
+            background: rgba(0, 0, 0, 0.8);
+            border-left: 4px solid var(--theme-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .review-card:hover {
+            border-left-color: var(--theme-secondary-color);
+            box-shadow: 0 5px 15px var(--hover-shadow-color);
+        }
+
+        .review-header {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 0.8rem;
+            align-items: center;
+        }
+
+        .review-author {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--neon-blue);
+        }
+
+        .review-rating {
+            font-size: 1rem;
+            color: #ffd700;
+            font-weight: 600;
+        }
+
+        .review-date {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .review-text {
+            font-size: 1rem;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        /* Загрузчик */
+        .preloader {
+            background: rgba(0, 0, 0, 0.95);
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--theme-color);
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .preloader p {
+            font-size: 1.2rem;
+            color: var(--theme-color);
+            text-shadow: 0 0 10px var(--theme-glow-color);
+        }
+
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            .analytics-container {
+                margin-top: 120px;
+                padding: 1rem;
             }
-          }
-        });
 
-        // Отображаем отзывы
-        renderReviews(reviews);
-      } catch (err) {
-        console.error('Ошибка:', err.message);
-        alert('Не удалось загрузить данные аналитики. Попробуйте позже.');
-        window.location.href = 'dashboard.html';
-      }
-    }
+            .neon-text {
+                font-size: 1.5rem;
+            }
 
-    document.addEventListener('DOMContentLoaded', loadAnalytics);
-  </script>
+            .glass-card, .reviews-section {
+                padding: 1.5rem;
+            }
+
+            .chart-container {
+                max-width: 100%;
+            }
+
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .metric-card {
+                padding: 1rem;
+            }
+
+            .neon-subtitle {
+                font-size: 1.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header-content {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .nav-panel .neon-btn {
+                width: 100%;
+                text-align: center;
+            }
+
+            .review-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1 class="neon-text">📊 АНАЛИТИКА ИГРЫ</h1>
+            <nav class="nav-panel">
+                <a href="dashboard.html" class="btn neon-btn">
+                    <span class="header-icon">←</span>Назад
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="analytics-container">
+        <div class="glass-card">
+            <h2 class="neon-subtitle" id="gameTitle">📈 Статистика игры</h2>
+            <div class="chart-container">
+                <canvas id="statsChart"></canvas>
+            </div>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <h3>👀 Просмотры</h3>
+                    <p id="viewsCount">0</p>
+                </div>
+                <div class="metric-card">
+                    <h3>⭐ Средний рейтинг</h3>
+                    <p id="avgRating">0</p>
+                </div>
+                <div class="metric-card">
+                    <h3>💬 Отзывы</h3>
+                    <p id="reviewsCount">0</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="reviews-section glass-card">
+            <h2 class="neon-subtitle">💬 Последние отзывы</h2>
+            <div id="reviewsList" class="reviews-list"></div>
+        </div>
+    </main>
+
+    <div id="preloader" class="preloader">
+        <div class="loading-spinner"></div>
+        <p>Загрузка...</p>
+    </div>
+
+    <script src="/scripts/analytics.js"></script>
 </body>
 </html>

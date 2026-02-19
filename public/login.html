@@ -30,46 +30,7 @@
       <p class="register-link text-center">Нет аккаунта? <a href="register.html" class="neon-link">Создать</a></p>
     </form>
   </main>
-  <script>
-    async function handleLogin(e) {
-      e.preventDefault();
-      const form = e.target;
-      const banMessageDiv = document.getElementById('banMessage');
-      
-      try {
-        const response = await fetch('/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            username: form.username.value,
-            password: form.password.value
-          })
-        });
 
-        const data = await response.json();
-
-        if (!response.ok) {
-          if (data.error === 'user_banned' && data.banInfo) {
-            const banEnd = new Date(data.banInfo.banEnd).toLocaleString('ru-RU');
-            banMessageDiv.textContent = `Ваш аккаунт заблокирован до ${banEnd}. Причина: ${data.banInfo.reason}`;
-            banMessageDiv.style.display = 'block';
-          } else {
-            throw new Error(data.error || 'Ошибка авторизации');
-          }
-        } else if (data.token) {
-          localStorage.setItem('token', data.token);
-          localStorage.setItem('user', JSON.stringify(data.user));
-          window.location.href = '/';
-        } else {
-          throw new Error('Токен не получен');
-        }
-      } catch (err) {
-        if (!banMessageDiv.textContent) {
-          alert(err.message);
-        }
-      }
-    }
-  </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'932bcc14af3fbf68',t:'MTc0NTA1OTM2Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+<script src="/scripts/login.js"></script>
 </body>
 </html>

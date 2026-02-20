@@ -2,7 +2,7 @@ const { EntityFactory, ValidationError } = require('../utils/factories');
 const { NotFoundError, AccessDeniedError } = require('./errors');
 
 class GameService {
-    constructor(dbManager, translationFacade, cache) {
+    constructor(dbManager, cache) {
         this.dbManager = dbManager;
         this.cache = cache;
         this.entityFactory = new EntityFactory(dbManager);
@@ -312,6 +312,32 @@ async updateGameFields(game, data, coverFile) {
             game.freeze_reason = null;
             await this.saveGame(game);
         }
+    }
+
+    translateGame(game) {
+        if (!game) return game;
+
+        const parseJson = this.dbManager && typeof this.dbManager.parseJson === 'function'
+            ? this.dbManager.parseJson.bind(this.dbManager)
+            : (_value, fallback) => fallback;
+
+        const ratings = Array.isArray(game.ratings) ? game.ratings : parseJson(game.ratings, []);
+        const tags = Array.isArray(game.tags) ? game.tags : parseJson(game.tags, []);
+        const files = Array.isArray(game.files) ? game.files : parseJson(game.files, []);
+
+        return {
+            ...game,
+            title: game.title || game.name || '',
+            name: game.name || game.title || '',
+            description: game.description || '',
+            genre: game.genre || '',
+            ratings,
+            tags,
+            files,
+            cover: game.cover || null,
+            frozen: game.frozen || false,
+            freeze_reason: game.freeze_reason || null
+        };
     }
 
     clearGameCache(gameId) {

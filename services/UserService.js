@@ -6,9 +6,8 @@ const { createUser, validateUser, toClientUser } = require('../utils/factories')
 const { ValidationError, NotFoundError, AccessDeniedError } = require('./errors');
 
 class UserService {
-  constructor(dbManager, translationFacade, cache, eventBus) {
+  constructor(dbManager, cache, eventBus) {
     this.dbManager = dbManager;
-    this.translationFacade = translationFacade;
     this.cache = cache;
     this.eventBus = eventBus;
     this.CACHE_KEYS = {
@@ -278,9 +277,9 @@ class UserService {
     if (userId === currentUserId) throw new AccessDeniedError('Нельзя забанить себя');
     const bannedUntil = new Date();
     bannedUntil.setDate(bannedUntil.getDate() + days);
-    const translatedReason = this.translationFacade.translate('ban_reasons', reason);
-    const finalReason = translatedReason || reason || 'Не указана';
-    console.log(`[DEBUG] banUser: translatedReason='${translatedReason}', finalReason='${finalReason}'`);
+    const Reason =  reason;
+    const finalReason = Reason || 'Не указана';
+    console.log(`[DEBUG] banUser: finalReason='${finalReason}'`);
     await this.dbManager.updateUser(userId, {
       banned: true,
       banned_until: bannedUntil,
@@ -417,17 +416,6 @@ async unsuspendUser(username, currentUserId) {
     console.log(`[DEBUG] DatabaseManager.saveUser: User saved with favorites: ${JSON.stringify(updatedUser.favorites)}`);
     return updatedUser;
   }
-
-  translateUser(user) {
-    const translatedReason = user.banReason ? this.translationFacade.translate('ban_reasons', user.banReason) : null;
-    const finalReason = translatedReason || user.banReason;
-    console.log(`[DEBUG] translateUser: username=${user.username}, original banReason='${user.banReason}', translatedReason='${translatedReason}', finalReason='${finalReason}'`);
-    return {
-      ...user,
-      banReason: finalReason
-    };
-  }
-
   async changeUsername(userId, newUsername) {
     console.log(`[DEBUG] UserService.changeUsername: Changing username for user ${userId} to ${newUsername}`);
 

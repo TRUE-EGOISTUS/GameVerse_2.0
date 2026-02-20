@@ -4,7 +4,6 @@ const { NotFoundError, AccessDeniedError } = require('./errors');
 class GameService {
     constructor(dbManager, translationFacade, cache) {
         this.dbManager = dbManager;
-        this.translationFacade = translationFacade;
         this.cache = cache;
         this.entityFactory = new EntityFactory(dbManager);
         this.CACHE_KEYS = {
@@ -186,7 +185,7 @@ async getGameById(id) {
         console.log('Отзывы:', reviews);
         return reviews.map(review => ({
             ...review,
-            comment: this.translationFacade.translate('rating_comments', review.comment) || review.comment
+            comment: review.comment
         }));
     }
 
@@ -204,11 +203,11 @@ async rateGame(id, user, rating, comment) {
         throw new ValidationError('Игра уже оценена');
     }
 
-    const translatedComment = comment ? await this.translationFacade.getOrCreate('rating_comments', comment) : '';
+    const Comment = comment ? comment : '';    
     game.ratings.push({
         user: user.username,
         rating: Number(rating),
-        comment: translatedComment,
+        comment: Comment,
         date: new Date().toISOString()
     });
     game.views = (game.views || 0) + 1;
@@ -239,14 +238,14 @@ async updateGameFields(game, data, coverFile) {
                   .split(',')
                   .map(tag => tag.trim())
                   .filter(tag => tag.length > 0)
-                  .map(tag => this.translationFacade.getOrCreate('tags', tag))
+                  .map(tag => tag) // Убираем вызов translationFacade, так как он больше не используется
           )
         : game.tags || [];
 
-    game.title = title ? await this.translationFacade.getOrCreate('descriptions', title) : game.title || '';
+    game.title = title ? title : game.title || '';
     game.name = game.title;
-    game.description = description ? await this.translationFacade.getOrCreate('descriptions', description) : game.description || '';
-    game.genre = genre ? await this.translationFacade.getOrCreate('genres', genre) : game.genre || '';
+    game.description = description ? description : game.description || '';
+    game.genre = genre ? genre : game.genre || '';
     game.tags = Array.isArray(parsedTags) && parsedTags.length > 0 ? parsedTags : game.tags || [];
 
     // Используем cover из data, если передан, иначе сохраняем текущий cover или null
@@ -322,27 +321,6 @@ async updateGameFields(game, data, coverFile) {
                 this.cache.del(key);
             }
         });
-    }
-
-    translateGame(game) {
-        const formattedUploadDate = game.upload_date
-            ? new Date(game.upload_date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })
-            : 'Неизвестно';
-
-        return {
-            ...game,
-            upload_date: formattedUploadDate,
-            genre: this.translationFacade.translate('genres', game.genre) || game.genre || '',
-            tags: (game.tags || []).map(tag => this.translationFacade.translate('tags', tag) || tag),
-            description: this.translationFacade.translate('descriptions', game.description) || game.description || '',
-            title: this.translationFacade.translate('descriptions', game.title) || game.title || '',
-            ratings: Array.isArray(game.ratings)
-                ? game.ratings.map(rating => ({
-                    ...rating,
-                    comment: this.translationFacade.translate('rating_comments', rating.comment) || rating.comment || ''
-                }))
-                : []
-        };
     }
 }
 

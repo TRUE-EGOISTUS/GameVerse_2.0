@@ -15,9 +15,8 @@ const UserService = require('./services/UserService');
 const FileManager = require('./services/FileManager');
 const RoutesHandler = require('./services/RoutesHandler');
 const { Cache, NodeCacheStrategy } = require('./utils/cache');
-const TranslationFacade = require('./utils/translationFacade');
 const EventBus = require('./utils/eventBus');
-const transliterate = require('./utils/transliterate');
+
 
 class GameServer {
     constructor() {
@@ -50,16 +49,12 @@ class GameServer {
     _setupCoreServices() {
         this.cache = new Cache(new NodeCacheStrategy());
         this.eventBus = new EventBus();
-        this.translationFacade = new TranslationFacade(
-            this.dbManager.pool,
-            this.getOrCreateTranslation.bind(this)
-        );
     }
 
     _setupDomainServices() {
         this.authService = new AuthService(this.JWT_SECRET, this.dbManager, this.cache);
-        this.gameService = new GameService(this.dbManager, this.translationFacade, this.cache);
-        this.userService = new UserService(this.dbManager, this.translationFacade, this.cache, this.eventBus);
+        this.gameService = new GameService(this.dbManager, this.cache);
+        this.userService = new UserService(this.dbManager, this.cache, this.eventBus);
         this.fileManager = new FileManager({ dataDir: this.dataDir });
         this.dbManager.fileManager = this.fileManager;
     }
@@ -73,14 +68,12 @@ class GameServer {
             this.fileManager,
             this.cache,
             this.eventBus,
-            this.translationFacade
         );
     }
 
     async initialize() {
         await this._checkDatabaseConnection();
         await this.dbManager.initialize();
-        await this.translationFacade.load();
 
         const games = await this.dbManager.getGames({});
         for (const game of games) {
@@ -159,33 +152,6 @@ _setupMiddleware() {
 
     this.app.use(errorHandler);
 }
-
-    async getOrCreateTranslation(category, ruText) {
-        if (!category || !ruText) return ruText;
-
-        try {
-            const selectRes = await this.dbManager.pool.query(
-                `SELECT en_text FROM translations WHERE category = $1 AND ru_text = $2`,
-                [category, ruText]
-            );
-            if (selectRes.rows.length > 0) {
-                return selectRes.rows[0].en_text;
-            }
-
-            const enText = transliterate(ruText);
-            await this.dbManager.pool.query(
-                `INSERT INTO translations (category, en_text, ru_text)
-                 VALUES ($1, $2, $3)
-                 ON CONFLICT (category, en_text) DO NOTHING`,
-                [category, enText, ruText]
-            );
-            console.log(`🆕 Added translation: [${category}] ${ruText} → ${enText}`);
-            return enText;
-        } catch (err) {
-            console.error(`❌ Error in getOrCreateTranslation [${category}]:`, err);
-            return ruText;
-        }
-    }
 
     start() {
         process.env.PGCLIENTENCODING = 'UTF8';

@@ -150,11 +150,10 @@ class UserService {
 
   async getFavorites(user) {
     const cacheKey = `${this.CACHE_KEYS.USER_FAVORITES}_${user.id}`;
-    if (typeof this.cache.del === 'function') {
-      this.cache.del(cacheKey);
-      console.log(`[DEBUG] Cleared cache for key: ${cacheKey}`);
-    } else {
-      console.warn(`[WARN] Cache does not have del method, skipping cache clear for key: ${cacheKey}`);
+    const cachedFavorites = this.cache.get(cacheKey);
+    if (cachedFavorites) {
+      console.log(`[DEBUG] Returning cached favorites for user ${user.id}:`, cachedFavorites.map(g => g.id));
+      return cachedFavorites;
     }
 
     const freshUser = await this.dbManager.getUserById(user.id);
@@ -162,47 +161,47 @@ class UserService {
       console.error(`[ERROR] User not found: ${user.id}`);
       throw new NotFoundError('Пользователь не найден');
     }
+    this._ensureFavoritesArray(freshUser);
     console.log(`[DEBUG] Fetched fresh user favorites:`, freshUser.favorites);
 
-    const games = await this.dbManager.getGames();
-    this._ensureFavoritesArray(freshUser);
+    if (freshUser.favorites.length === 0) {
+      this.cache.set(cacheKey, [], 300);
+      console.log(`[DEBUG] No favorites found for user ${user.id}`);
+      return [];
+    }
 
-    console.log(`[DEBUG] All games from DB:`, games.map(g => g.id));
-    console.log(`[DEBUG] User favorites before filtering:`, freshUser.favorites);
+    const resolvedGames = await Promise.all(
+      freshUser.favorites.map(async (gameId) => {
+        try {
+          return await this.dbManager.getGameById(gameId);
+        } catch (err) {
+          console.warn(`[WARN] Failed to resolve favorite game ${gameId}: ${err.message}`);
+          return null;
+        }
+      })
+    );
 
-    const validFavorites = [];
-    const allGameIds = new Set(games.map(game => game.id));
-    let updated = false;
+    const validGames = [];
+    const validFavoriteIds = [];
 
-    for (const gameId of freshUser.favorites) {
-      if (allGameIds.has(gameId)) {
-        validFavorites.push(gameId);
-      } else {
-        console.warn(`[DEBUG] Removed invalid game ${gameId} from favorites for user ${user.id}`);
-        updated = true;
+    for (const game of resolvedGames) {
+      if (game) {
+        validGames.push({ ...game, isFavorite: true });
+        validFavoriteIds.push(game.id);
       }
     }
 
-    if (updated) {
-      freshUser.favorites = validFavorites;
+    if (validFavoriteIds.length !== freshUser.favorites.length) {
+      freshUser.favorites = validFavoriteIds;
       await this._saveUserWithTransaction(freshUser);
       this._clearUserCache(user.id);
       console.log(`[DEBUG] Updated favorites for user ${user.id}:`, freshUser.favorites);
     }
 
-    const favoriteGames = games
-      .filter(game => freshUser.favorites.includes(game.id))
-      .map(game => ({
-        ...game,
-        isFavorite: true
-      }));
+    this.cache.set(cacheKey, validGames, 300);
+    console.log(`[DEBUG] Cached favorites for user ${user.id}:`, validGames.map(g => g.id));
 
-    if (favoriteGames.length > 0) {
-      this.cache.set(cacheKey, favoriteGames, 300);
-      console.log(`[DEBUG] Cached favorites for user ${user.id}:`, favoriteGames.map(g => g.id));
-    } else {
-      console.log(`[DEBUG] No favorites found for user ${user.id}`);
-    }
+    const favoriteGames = validGames;
     return favoriteGames;
   }
 

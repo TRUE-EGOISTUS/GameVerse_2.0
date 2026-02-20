@@ -5,8 +5,6 @@ const fs = require('fs').promises;
 const crypto = require('crypto');
 const { ValidationError } = require('./errors');
 const winston = require('winston');
-const { FileAntivirus } = require('../utils/fileAntivirus');
-const mime = require('mime-types');
 
 class FileManager {
     constructor(options = {}, logger = null) {
@@ -50,7 +48,6 @@ class FileManager {
             transports: [new winston.transports.Console()]
         });
 
-        this.antivirus = new FileAntivirus();
         this.tempDir = path.join(this.dataDir, 'temp');
         this._initializeDirectories(); // Добавляем инициализацию папок
 
@@ -66,28 +63,6 @@ class FileManager {
         } catch (err) {
             this.log(`Failed to create temp directory: ${err.message}`, 'error');
             throw err;
-        }
-    }
-
-    async isFileContentSafe(buffer, filename, mimeType = null) {
-        if (!mimeType) {
-            mimeType = mime.lookup(filename) || 'application/octet-stream';
-        }
-        if (mimeType === 'image/jpg') {
-            mimeType = 'image/jpeg';
-        }
-        try {
-            this.log(`Checking file ${filename} with MIME type: ${mimeType}`, 'info');
-            const safe = await this.antivirus.isFileContentSafe(buffer, filename, mimeType);
-            if (!safe) {
-                this.log(`Файл ${filename} не прошёл проверку безопасности.`, 'error');
-            } else {
-                this.log(`Файл ${filename} прошёл проверку безопасности.`, 'info');
-            }
-            return safe;
-        } catch (err) {
-            this.log(`Ошибка проверки безопасности файла ${filename}: ${err.message}`, 'error');
-            return false;
         }
     }
 
@@ -180,46 +155,10 @@ createGameUpload() {
                 this.log(`Директория ${gameDir} не существует, пропускаем сканирование`, 'info');
                 return;
             }
-            const files = await fs.readdir(gameDir, { recursive: true });
-            for (const file of files) {
-                const filePath = path.join(gameDir, file);
-                const stat = await fs.stat(filePath);
-                if (!stat.isFile()) continue;
-                const buffer = await fs.readFile(filePath);
-                const safe = await this.isFileContentSafe(buffer, path.basename(filePath));
-                if (!safe) {
-                    await fs.unlink(filePath);
-                    this.log(`Удалён небезопасный файл: ${filePath}`, 'warn');
-                }
-            }
         } catch (err) {
             this.log(`Ошибка сканирования директории ${gameDir}: ${err.message}`, 'error');
         }
     }
-checkGameFilesSafetyMiddleware() {
-    const self = this;
-    return async function (req, res, next) {
-        try {
-            if (!req.files || !Array.isArray(req.files)) {
-                return next(new ValidationError('Файлы игры не загружены'));
-            }
-
-            for (const file of req.files) {
-                const normalizedMimeType = file.mimetype.replace(/^text\/javascript$/, 'application/javascript');
-                self.log(`Verifying safety of ${file.originalname} with MIME type: ${normalizedMimeType}`, 'info');
-                const safe = await self.isFileContentSafe(file.buffer, file.originalname, normalizedMimeType);
-                if (!safe) {
-                    return next(new ValidationError(`Файл ${file.originalname} содержит опасный код`));
-                }
-            }
-
-            next();
-        } catch (err) {
-            next(err);
-        }
-    };
-}
-
     createAvatarUpload() {
         const self = this;
         return multer({
@@ -239,26 +178,6 @@ checkGameFilesSafetyMiddleware() {
             }
         });
     }
-
-    checkAvatarSafetyMiddleware() {
-        const self = this;
-        return function (req, res, next) {
-            if (!req.file) {
-                return next(new ValidationError('Файл аватара не загружен'));
-            }
-            const filename = req.file.originalname || 'avatar.png';
-            self.isFileContentSafe(req.file.buffer, filename, req.file.mimetype)
-                .then(safe => {
-                    if (!safe) {
-                        return next(new ValidationError(`Файл аватара ${filename} содержит опасный код`));
-                    }
-                    next();
-                })
-                .catch(next);
-        };
-    }
-
-
 createCoverUpload() {
     const self = this;
     return multer({

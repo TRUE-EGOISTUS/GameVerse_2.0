@@ -5,9 +5,8 @@ const mime = require('mime-types');
 const Joi = require('joi');
 const { v4: uuidv4 } = require('uuid');
 const { createGame, validateGame } = require('../utils/factories');
-const { isFileContentSafe } = require('../utils/fileAntivirus');
 const jwt = require('jsonwebtoken');
-const { ValidationError, NotFoundError, AccessDeniedError } = require('./errors');
+const { ValidationError, NotFoundError, AccessDeniedError, UnauthorizedError } = require('./errors');
 const GAMES_BASE_DIR = path.resolve(__dirname, '..', 'uploads', 'games'); // путь к хранилищу
 class RoutesHandler {
     constructor(app, authService, gameService, userService, fileManager, cache, eventBus) {
@@ -140,7 +139,6 @@ this.app.post('/logout', async (req, res, next) => {
             '/user/avatar',
             RoutesHandler.authMiddleware(this.authService),
             this.fileManager.getAvatarUpload().single('avatar'),
-            this.fileManager.checkAvatarSafetyMiddleware(),
             async (req, res, next) => {
                 try {
                     if (!req.file) {
@@ -156,14 +154,9 @@ this.app.post('/logout', async (req, res, next) => {
 
       // Файл: RoutesHandler.js
 // Файл: E:\Gaming Hub\routes\RoutesHandler.js
-this.app.get('/user-data', async (req, res, next) => {
+this.app.get('/user-data', RoutesHandler.authMiddleware(this.authService), async (req, res, next) => {
     try {
-        const token = req.headers.authorization?.split(' ')[1];
-        if (!token) {
-            throw new UnauthorizedError('Токен авторизации отсутствует');
-        }
-        const user = await this.authService.verifyToken(token);
-        const favorites = await this.userService.getFavorites(user);
+        const user = req.user;
         const userData = {
             id: user.id,
             username: user.username,
@@ -172,7 +165,7 @@ this.app.get('/user-data', async (req, res, next) => {
             banned: user.banned,
             banned_until: user.banned_until,
             ban_reason: user.ban_reason,
-            favorites: favorites.map(game => game.id)
+            favorites: Array.isArray(user.favorites) ? user.favorites : []
         };
         console.log(`[DEBUG] Returning user data for ${user.username}, favorites: ${JSON.stringify(userData.favorites)}`);
         res.status(200).json(userData);
@@ -713,12 +706,6 @@ this.app.post('/games/:id/cover', RoutesHandler.authMiddleware(this.authService)
             throw new ValidationError(`Файл обложки ${req.file.originalname} не содержит данных`);
         }
 
-        const isSafe = await this.fileManager.isFileContentSafe(fileBuffer, req.file.originalname, req.file.mimetype);
-        if (!isSafe) {
-            await fs.unlink(req.file.path).catch(e => console.error(`[ERROR] Failed to delete temp file: ${e.message}`));
-            throw new ValidationError(`Файл обложки ${req.file.originalname} содержит опасный код`);
-        }
-
         const coverUrl = await this.fileManager.saveCoverBuffer(id, fileBuffer, path.extname(req.file.originalname).slice(1));
         console.log(`[DEBUG] Cover URL generated: ${coverUrl}`);
 
@@ -760,7 +747,6 @@ this.app.post('/games/upload',
         console.log('[DEBUG] Вызван middleware getGameUpload');
         this.fileManager.getGameUpload()(req, res, next);
     },
-    this.fileManager.checkGameFilesSafetyMiddleware(),
     async (req, res, next) => {
         let newGameId = null;
         try {
@@ -1020,12 +1006,6 @@ this.app.get('/games/:gameId/*', async (req, res, next) => {
 
         // Проверяем содержимое файла на безопасность
         const buffer = await fs.readFile(absPath);
-        const safe = await this.fileManager.isFileContentSafe(buffer, path.basename(absPath));
-        if (!safe) {
-            console.error(`[ERROR] Файл ${path.basename(filePath)} содержит опасный код`);
-            throw new ValidationError(`Файл ${path.basename(filePath)} содержит опасный код`);
-        }
-
         const mimeType = mime.lookup(absPath) || 'application/octet-stream';
         console.log(`[DEBUG] Отправка файла ${absPath} с MIME-типом: ${mimeType}`);
         this.cache.set(cacheKey, { mimeType, content: buffer }, 600);

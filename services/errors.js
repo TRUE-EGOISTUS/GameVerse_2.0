@@ -21,6 +21,12 @@ class AccessDeniedError extends AppError {
     }
 }
 
+class UnauthorizedError extends AppError {
+    constructor(message = 'Требуется авторизация', details = null) {
+        super(message, 401, 'UNAUTHORIZED', details);
+    }
+}
+
 class ValidationError extends Error {
     constructor(message) {
         super(message);
@@ -33,5 +39,6 @@ module.exports = {
     AppError,
     NotFoundError,
     AccessDeniedError,
+    UnauthorizedError,
     ValidationError
 };

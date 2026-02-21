@@ -34,18 +34,14 @@ class RoutesHandler {
             try {
                 const authHeader = req.headers.authorization;
                 if (!authHeader || !authHeader.startsWith('Bearer ')) {
-                    throw new ValidationError('Токен авторизации отсутствует или неверный формат');
+                    throw new UnauthorizedError('Токен авторизации отсутствует или неверный формат');
                 }
                 const token = authHeader.split(' ')[1];
                 const user = await authService.verifyToken(token);
-                if (!user.id || !user.role) {
-                    throw new ValidationError('Некорректные данные пользователя в токене');
-                }
                 req.user = user;
                 next();
-                console.log('[DEBUG] authMiddleware: Request content-type:', req.headers['content-type']);
             } catch (err) {
-                res.status(401).json({ error: { message: err.message || 'Ошибка авторизации' } });
+                next(err);
             }
         };
     }
@@ -91,18 +87,15 @@ class RoutesHandler {
                 const { token, user } = await this.authService.login(username, password);
                 res.json({ token, user, notifications: [] });
             } catch (err) {
-                console.error('Ошибка при логине:', err);
                 next(err);
             }
         });
 this.app.post('/register', async (req, res, next) => {
     try {
-        console.log('[DEBUG] JWT_SECRET:', process.env.JWT_SECRET);
         const { error, value } = registerSchema.validate(req.body);
         if (error) throw new ValidationError(`ValidationError: ${error.message}`);
         const { username, password, role } = value;
         const user = await this.userService.register(username, password, role);
-        if (!user) throw new ValidationError('Не удалось создать пользователя');
         const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, process.env.JWT_SECRET, { expiresIn: '24h' });
         await this.userService.dbManager.saveToken(user.id, token);
         res.json({ token, user });
@@ -112,26 +105,15 @@ this.app.post('/register', async (req, res, next) => {
 });
 // Файл: src/services/RoutesHandler.js
 
-this.app.post('/logout', async (req, res, next) => {
+this.app.post('/logout', RoutesHandler.authMiddleware(this.authService), async (req, res, next) => {
     try {
-        const token = req.headers.authorization?.split(' ')[1];
-        if (!token) {
-            console.error('[ERROR] handleLogout: No token provided');
-            return res.status(401).json({ error: 'Токен авторизации отсутствует' });
-        }
-        const user = await this.authService.verifyToken(token);
-        if (!user.id) {
-            console.error('[ERROR] handleLogout: No userId in token');
-            return res.status(401).json({ error: 'Неверный токен' });
-        }
-        console.log(`[DEBUG] handleLogout: Logging out user ${user.id}`);
+        const user = req.user;
         await this.userService.logout(user.id); // Передаём user.id вместо user
         res.clearCookie('token');
         res.status(200).json({ success: true });
     } catch (err) {
-        console.error(`[ERROR] handleLogout: ${err.message}`);
         res.clearCookie('token');
-        res.status(500).json({ error: 'Ошибка при выходе', details: err.message });
+        next(err);
     }
 });
 
@@ -170,7 +152,6 @@ this.app.get('/user-data', RoutesHandler.authMiddleware(this.authService), async
         console.log(`[DEBUG] Returning user data for ${user.username}, favorites: ${JSON.stringify(userData.favorites)}`);
         res.status(200).json(userData);
     } catch (err) {
-        console.error('[ERROR] Error in /user-data:', err);
         next(err);
     }
 });
@@ -194,7 +175,6 @@ this.app.put('/user/username', RoutesHandler.authMiddleware(this.authService), a
 
         res.status(200).json({ success: true, username: updatedUser.username, token });
     } catch (err) {
-        console.error(`[ERROR] Error in /user/username: ${err.message}`);
         next(err);
     }
 });
@@ -212,23 +192,16 @@ this.app.put('/user/password', RoutesHandler.authMiddleware(this.authService), a
 
         res.status(200).json({ success: true });
     } catch (err) {
-        console.error(`[ERROR] Error in /user/password: ${err.message}`);
         next(err);
     }
 });
 // Файл: RoutesHandler.js
-this.app.get('/favorites', async (req, res, next) => {
+this.app.get('/favorites', RoutesHandler.authMiddleware(this.authService), async (req, res, next) => {
     try {
-        const token = req.headers.authorization?.split(' ')[1];
-        if (!token) {
-            throw new UnauthorizedError('Токен авторизации отсутствует');
-        }
-        const user = await this.authService.verifyToken(token);
-        const favorites = await this.userService.getFavorites(user);
-        console.log(`[DEBUG] Returning favorites for user ${user.username}:`, JSON.stringify(favorites));
+        const favorites = await this.userService.getFavorites(req.user);
+        console.log(`[DEBUG] Returning favorites for user ${req.user.username}:`, JSON.stringify(favorites));
         res.status(200).json(favorites);
     } catch (err) {
-        console.error('[ERROR] Error in /favorites:', err);
         next(err);
     }
 });
@@ -253,7 +226,6 @@ this.app.post('/favorites/add/:gameId', RoutesHandler.authMiddleware(this.authSe
                 const favorites = await this.userService.getFavorites(req.user);
                 res.status(200).json({ success: true, favorites: favorites.map(game => this.gameService.translateGame(game)) });
             } catch (err) {
-                console.error(`[ERROR] Error adding game to favorites: ${err.message}`);
                 next(err);
             }
         });
@@ -277,7 +249,6 @@ this.app.delete('/favorites/remove/:gameId', RoutesHandler.authMiddleware(this.a
 
     res.status(200).json({ success: true });
   } catch (err) {
-    console.error(`[ERROR] Error removing game from favorites: ${err.message}`);
     next(err);
   }
 });
@@ -288,7 +259,6 @@ this.app.post('/favorites/clear-cache', RoutesHandler.authMiddleware(this.authSe
         console.log(`[DEBUG] Cache cleared for key: ${cacheKey}`);
         res.status(200).json({ success: true });
     } catch (err) {
-        console.error('[ERROR] Error clearing favorites cache:', err);
         next(err);
     }
 });
@@ -346,7 +316,6 @@ this.app.get('/games', async (req, res, next) => {
     
     res.status(200).json(responseGames);
   } catch (err) {
-    console.error('[ERROR] Error in /games:', err);
     next(err);
   }
 });
@@ -368,7 +337,6 @@ this.app.post('/games/clear-cache', RoutesHandler.authMiddleware(this.authServic
         console.log(`[DEBUG] Cleared ${cacheKeys.length} games cache keys`);
         res.status(200).json({ success: true });
     } catch (err) {
-        console.error('[ERROR] Error clearing games cache:', err);
         next(err);
     }
 });
@@ -399,7 +367,6 @@ this.app.delete('/admin/users/:userId', RoutesHandler.authMiddleware(this.authSe
         await this.userService.deleteUser(userId, req.user.id);
         res.status(200).json({ success: true, message: 'Пользователь и его игры удалены' });
     } catch (err) {
-        console.error(`[ERROR] Delete user failed: ${err.message}`);
         next(err);
     }
 });
@@ -419,7 +386,6 @@ this.app.post('/admin/users/:username/ban', RoutesHandler.authMiddleware(this.au
     await this.userService.banUser(user.id, banDays, banReason, req.user.id);
     res.status(200).json({ success: true });
   } catch (err) {
-    console.error(`[ERROR] Ban user failed: ${err.message}`);
     next(err);
   }
 });
@@ -430,7 +396,6 @@ this.app.post('/admin/users/:username/unban', RoutesHandler.authMiddleware(this.
     await this.userService.unbanUser(username, req.user.id);
     res.status(200).json({ success: true });
   } catch (err) {
-    console.error(`[ERROR] Unban user failed: ${err.message}`);
     next(err);
   }
 });
@@ -447,7 +412,6 @@ this.app.post('/admin/users/:username/suspend', RoutesHandler.authMiddleware(thi
     await this.userService.suspendUser(username, days, req.user);
     res.status(200).json({ success: true });
   } catch (err) {
-    console.error(`[ERROR] Suspend user failed: ${err.message}`);
     next(err);
   }
 });
@@ -458,7 +422,6 @@ this.app.post('/admin/users/:username/unsuspend', RoutesHandler.authMiddleware(t
     await this.userService.unsuspendUser(username, req.user.id);
     res.status(200).json({ success: true });
   } catch (err) {
-    console.error(`[ERROR] Unsuspend user failed: ${err.message}`);
     next(err);
   }
 });
@@ -475,7 +438,6 @@ this.app.put('/admin/users/:username/role', RoutesHandler.authMiddleware(this.au
     await this.userService.updateUserRole(username, role, req.user.id);
     res.status(200).json({ success: true });
   } catch (err) {
-    console.error(`[ERROR] Update user role failed: ${err.message}`);
     next(err);
   }
 });
@@ -660,7 +622,6 @@ this.app.delete('/games/:id', RoutesHandler.authMiddleware(this.authService), as
         this.gameService.clearGameCache(id);
         res.status(200).json({ success: true, message: 'Игра удалена' });
     } catch (err) {
-        console.error(`[ERROR] Delete game failed: ${err.message}`);
         next(err);
     }
 });
@@ -718,7 +679,6 @@ this.app.post('/games/:id/cover', RoutesHandler.authMiddleware(this.authService)
         this.gameService.clearGameCache(id);
         res.status(200).json({ success: true, game: updatedGame });
     } catch (err) {
-        console.error(`[ERROR] Cover upload failed: ${err.message}, Stack: ${err.stack}`);
         if (req.file && req.file.path) {
             require('fs').promises.unlink(req.file.path).catch(e => console.error(`[ERROR] Failed to delete temp file: ${e.message}`));
         }
@@ -929,11 +889,10 @@ this.app.get('/games/:id/play', async (req, res, next) => {
         res.sendFile(absPath, (err) => {
             if (err) {
                 console.error(`[ERROR] Не удалось отправить файл: ${absPath}`, err);
-                throw new NotFoundError('Не удалось загрузить файл игры');
+                return next(new NotFoundError('Не удалось загрузить файл игры'));
             }
         });
     } catch (err) {
-        console.error(`[ERROR] Ошибка при загрузке игры: ${err.message}`);
         next(err);
     }
 });
@@ -1012,7 +971,6 @@ this.app.get('/games/:gameId/*', async (req, res, next) => {
         res.setHeader('Content-Type', mimeType);
         res.status(200).send(buffer);
     } catch (err) {
-        console.error(`[ERROR] Ошибка при загрузке ресурса: ${err.message}`);
         next(err);
     }
 });
@@ -1028,18 +986,6 @@ this.app.get('/game-analytics/:id', RoutesHandler.authMiddleware(this.authServic
 });
         this.app.get('/login', (req, res) => {
             res.sendFile(path.join(__dirname, '..', 'public', 'login.html'));
-        });
-
-        this.app.use((err, req, res, next) => {
-            const status = err.statusCode || 500;
-            console.log('Error handler:', err.message, 'Status:', status);
-            res.status(status).json({
-                success: false,
-                error: {
-                    message: err.message || 'Internal Server Error',
-                    ...(err.details && { details: err.details })
-                }
-            });
         });
     }
 }

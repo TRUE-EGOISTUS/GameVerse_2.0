@@ -49,8 +49,9 @@ class FileManager {
         });
 
         this.tempDir = path.join(this.dataDir, 'temp');
-        this._initializeDirectories(); // Добавляем инициализацию папок
-
+        this._initializeDirectories().catch((err) => {
+            this.log(`Failed to initialize directories: ${err.message}`, 'error');
+        });
         this.upload = this.createGameUpload();
         this.avatarUpload = this.createAvatarUpload();
         this.coverUpload = this.createCoverUpload();
@@ -193,7 +194,8 @@ createCoverUpload() {
             },
             filename: (req, file, cb) => {
                 self.log(`Saving file ${file.originalname} to temp directory`, 'info');
-                cb(null, file.originalname);
+                const safeName = self.sanitizeFilename(file.originalname || 'cover.png');
+                cb(null, safeName);
             }
         }),
         limits: {
@@ -203,9 +205,6 @@ createCoverUpload() {
         fileFilter: async function (req, file, cb) {
             try {
                 self.log(`Received cover file ${file.originalname} with MIME type: ${file.mimetype}`, 'info');
-                self.log(`Full file object: ${JSON.stringify(file, null, 2)}`, 'debug');
-                self.log(`Request headers: ${JSON.stringify(req.headers, null, 2)}`, 'debug');
-                self.log(`Request body: ${JSON.stringify(req.body, null, 2)}`, 'debug');
                 if (!self.allowedTypes.cover.includes(file.mimetype)) {
                     self.log(`Invalid MIME type for cover: ${file.mimetype}. Allowed types: ${self.allowedTypes.cover.join(', ')}`, 'error');
                     return cb(new ValidationError(`Недопустимый тип файла обложки: ${file.mimetype}`));
@@ -221,7 +220,7 @@ createCoverUpload() {
 }
 
 getGameUpload() {
-    return this.createGameUpload(); // Новая версия
+    return this.upload;
 }
 
     getAvatarUpload() {
@@ -232,12 +231,20 @@ getGameUpload() {
         return this.coverUpload;
     }
 
-    async saveAvatarBuffer(userId, buffer, extension) {
-        try {
+    async saveAvatarBuffer(userId, buffer, extension = 'png') {
+       let normalExtAvatar = extension.toLowerCase().replace(/^\./, '');
+       let safeExtAvatar;
+       if (normalExtAvatar === 'jpg' || normalExtAvatar === 'jpeg' || normalExtAvatar === 'png' || normalExtAvatar === 'gif') {
+           safeExtAvatar = normalExtAvatar;
+        }
+       else {
+            safeExtAvatar = 'png';
+        }
+       try {
             const avatarDir = path.join(this.dataDir, 'avatars');
             await this.ensureDir(avatarDir);
-
-            const filename = `${userId}.${extension}`;
+            const safeUserId = userId.toString().replace(/[^a-zA-Z0-9_-]/g, '');
+            const filename = `${safeUserId}.${safeExtAvatar}`;
             const filePath = path.join(avatarDir, filename);
 
             await fs.writeFile(filePath, buffer);
@@ -250,10 +257,18 @@ getGameUpload() {
     }
 
  async saveCoverBuffer(gameId, buffer, extension = 'png') {
+    let normalExtCover = extension.toLowerCase().replace(/^\./, '');
+    let safeExtCover;
+    if (normalExtCover === 'jpg'|| normalExtCover === 'jpeg' || normalExtCover === 'png') {
+        safeExtCover = normalExtCover;
+    }
+    else{
+        safeExtCover = 'png';
+    }
     const coverDir = path.join(this.dataDir, 'covers');
     await this.ensureDir(coverDir);
     const safeGameId = gameId.toString().replace(/[^a-zA-Z0-9_-]/g, '');
-    const filename = `${safeGameId}.${extension}`;
+    const filename = `${safeGameId}.${safeExtCover}`;
     const filePath = path.join(coverDir, filename);
     await fs.writeFile(filePath, buffer);
     this.log(`Сохранена обложка для gameId ${gameId}: ${filePath}`, 'info');

@@ -18,6 +18,7 @@ class AuthService {
   }
 
  async login(username, password) {
+    let dateNow = new Date();
     if (!username || !password) throw new ValidationError('Отсутствуют учетные данные');
     if (password.length < 6) throw new ValidationError('Пароль слишком короткий');
 
@@ -28,14 +29,14 @@ class AuthService {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) throw new ValidationError('Неверные учетные данные');
 
-    if (user.banned_until && new Date(user.banned_until) > new Date()) {
+    if (user.banned_until && new Date(user.banned_until) > dateNow) {
         const banEndFormatted = dayjs(user.banned_until).format('DD.MM.YYYY HH:mm');
         throw new AccessDeniedError('Пользователь заблокирован', {
             banEnd: banEndFormatted,
             reason: user.ban_reason || 'Причина не указана'
         });
     }
-    if (user.suspended_until && new Date(user.suspended_until) > new Date()) {
+    if (user.suspended_until && new Date(user.suspended_until) > dateNow) {
         const suspendEndFormatted = dayjs(user.suspended_until).format('DD.MM.YYYY HH:mm');
         throw new AccessDeniedError('Пользователь приостановлен', {
             suspendEnd: suspendEndFormatted
@@ -51,7 +52,7 @@ class AuthService {
     const token = this.generateToken(payload);
 
     user.online = true;
-    user.last_seen = new Date().toISOString();
+    user.last_seen = dateNow.toISOString();
     await this.dbManager.saveUser(user);
     await this.dbManager.saveToken(user.id, token);
 
@@ -74,21 +75,21 @@ class AuthService {
 
    async verifyToken(token) {
     const cacheKey = `token_${token}`;
-    let user = this.cache.get(cacheKey);
-    if (user) {
-        return user; // Возвращаем пользователя из кэша
+    let cachedUser = this.cache.get(cacheKey);
+    if (cachedUser) {
+        return cachedUser; // Возвращаем пользователя из кэша
     }
     try {
         const decoded = jwt.verify(token, this.jwtSecret);  // <- исправлено здесь
-        user = await this.dbManager.getUserById(decoded.id);
-        if (!user) throw new NotFoundError('Пользователь не найден');
-        this.cache.set(cacheKey, user, 300);
+        let userFromBase = await this.dbManager.getUserById(decoded.id);
+        if (!userFromBase) throw new NotFoundError('Пользователь не найден');
+        this.cache.set(cacheKey, userFromBase, 300);
+        return userFromBase;
     } catch (err) {
         if (err.name === 'TokenExpiredError') throw new AccessDeniedError('Токен истек');
-        if (err.name === 'NotFoundError') throw err;
+        if (err instanceof NotFoundError) throw err;
         throw new AccessDeniedError('Неверный токен');
     }
-    return user;
 }
 
 

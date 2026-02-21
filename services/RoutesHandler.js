@@ -5,12 +5,11 @@ const mime = require('mime-types');
 const Joi = require('joi');
 const { v4: uuidv4 } = require('uuid');
 const { createGame, validateGame } = require('../utils/factories');
-const { isFileContentSafe } = require('../utils/fileAntivirus');
 const jwt = require('jsonwebtoken');
-const { ValidationError, NotFoundError, AccessDeniedError } = require('./errors');
+const { ValidationError, NotFoundError, AccessDeniedError, UnauthorizedError } = require('./errors');
 const GAMES_BASE_DIR = path.resolve(__dirname, '..', 'uploads', 'games'); // путь к хранилищу
 class RoutesHandler {
-    constructor(app, authService, gameService, userService, fileManager, cache, eventBus, translationFacade) {
+    constructor(app, authService, gameService, userService, fileManager, cache, eventBus) {
         this.app = app;
         this.authService = authService;
         this.gameService = gameService;
@@ -18,7 +17,6 @@ class RoutesHandler {
         this.fileManager = fileManager;
         this.cache = cache;
         this.eventBus = eventBus;
-        this.translationFacade = translationFacade;
         this.dataDir = path.join(__dirname, '..', 'data');
         this.CACHE_KEYS = {
             GAMES_LIST: 'games_list',
@@ -141,7 +139,6 @@ this.app.post('/logout', async (req, res, next) => {
             '/user/avatar',
             RoutesHandler.authMiddleware(this.authService),
             this.fileManager.getAvatarUpload().single('avatar'),
-            this.fileManager.checkAvatarSafetyMiddleware(),
             async (req, res, next) => {
                 try {
                     if (!req.file) {
@@ -157,14 +154,9 @@ this.app.post('/logout', async (req, res, next) => {
 
       // Файл: RoutesHandler.js
 // Файл: E:\Gaming Hub\routes\RoutesHandler.js
-this.app.get('/user-data', async (req, res, next) => {
+this.app.get('/user-data', RoutesHandler.authMiddleware(this.authService), async (req, res, next) => {
     try {
-        const token = req.headers.authorization?.split(' ')[1];
-        if (!token) {
-            throw new UnauthorizedError('Токен авторизации отсутствует');
-        }
-        const user = await this.authService.verifyToken(token);
-        const favorites = await this.userService.getFavorites(user);
+        const user = req.user;
         const userData = {
             id: user.id,
             username: user.username,
@@ -173,7 +165,7 @@ this.app.get('/user-data', async (req, res, next) => {
             banned: user.banned,
             banned_until: user.banned_until,
             ban_reason: user.ban_reason,
-            favorites: favorites.map(game => game.id)
+            favorites: Array.isArray(user.favorites) ? user.favorites : []
         };
         console.log(`[DEBUG] Returning user data for ${user.username}, favorites: ${JSON.stringify(userData.favorites)}`);
         res.status(200).json(userData);
@@ -714,12 +706,6 @@ this.app.post('/games/:id/cover', RoutesHandler.authMiddleware(this.authService)
             throw new ValidationError(`Файл обложки ${req.file.originalname} не содержит данных`);
         }
 
-        const isSafe = await this.fileManager.isFileContentSafe(fileBuffer, req.file.originalname, req.file.mimetype);
-        if (!isSafe) {
-            await fs.unlink(req.file.path).catch(e => console.error(`[ERROR] Failed to delete temp file: ${e.message}`));
-            throw new ValidationError(`Файл обложки ${req.file.originalname} содержит опасный код`);
-        }
-
         const coverUrl = await this.fileManager.saveCoverBuffer(id, fileBuffer, path.extname(req.file.originalname).slice(1));
         console.log(`[DEBUG] Cover URL generated: ${coverUrl}`);
 
@@ -761,7 +747,6 @@ this.app.post('/games/upload',
         console.log('[DEBUG] Вызван middleware getGameUpload');
         this.fileManager.getGameUpload()(req, res, next);
     },
-    this.fileManager.checkGameFilesSafetyMiddleware(),
     async (req, res, next) => {
         let newGameId = null;
         try {
@@ -832,16 +817,16 @@ this.app.post('/games/upload',
                         .split(',')
                         .map(tag => tag.trim())
                         .filter(tag => tag)
-                        .map(tag => this.translationFacade.getOrCreate('tags', tag))
+                        .map(tag => tag)
                 )
                 : [];
-            const translatedGenre = genre ? await this.translationFacade.getOrCreate('genres', genre) : '';
+            const translatedGenre = genre ? genre : '';
 
             const game = createGame({
                 id: newGameId,
                 name: title,
-                title: title ? await this.translationFacade.getOrCreate('descriptions', title) : '',
-                description: description ? await this.translationFacade.getOrCreate('descriptions', description) : '',
+                title: title ? title : '',
+                description: description ? description : '',
                 author: req.user.username,
                 path: gamePath, // Используем правильный путь
                 upload_date: new Date().toISOString(),
@@ -1021,12 +1006,6 @@ this.app.get('/games/:gameId/*', async (req, res, next) => {
 
         // Проверяем содержимое файла на безопасность
         const buffer = await fs.readFile(absPath);
-        const safe = await this.fileManager.isFileContentSafe(buffer, path.basename(absPath));
-        if (!safe) {
-            console.error(`[ERROR] Файл ${path.basename(filePath)} содержит опасный код`);
-            throw new ValidationError(`Файл ${path.basename(filePath)} содержит опасный код`);
-        }
-
         const mimeType = mime.lookup(absPath) || 'application/octet-stream';
         console.log(`[DEBUG] Отправка файла ${absPath} с MIME-типом: ${mimeType}`);
         this.cache.set(cacheKey, { mimeType, content: buffer }, 600);
@@ -1062,24 +1041,6 @@ this.app.get('/game-analytics/:id', RoutesHandler.authMiddleware(this.authServic
                 }
             });
         });
-    }
-
-    transliterate(text) {
-        const ruToEn = {
-            'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo', 'ж': 'zh',
-            'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o',
-            'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'kh', 'ц': 'ts',
-            'ч': 'ch', 'ш': 'sh', 'щ': 'sch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu',
-            'я': 'ya', ' ': '-', ',': ''
-        };
-        return text
-            ? text
-                .toLowerCase()
-                .split('')
-                .map(char => ruToEn[char] || char)
-                .join('')
-                .replace(/[^a-z0-9-]/g, '')
-            : '';
     }
 }
 

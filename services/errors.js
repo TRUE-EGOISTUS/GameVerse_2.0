@@ -21,17 +21,22 @@ class AccessDeniedError extends AppError {
     }
 }
 
-class ValidationError extends Error {
+class ValidationError extends AppError {
     constructor(message) {
-        super(message);
+        super(message, 400, 'VALIDATION_ERROR');
         this.name = 'ValidationError';
-        this.statusCode = 400;
     }
 }
-
+class UnauthorizedError extends AppError {
+    constructor(message = 'Не авторизован') {
+        super(message, 401, 'UNAUTHORIZED');
+        this.name = 'UnauthorizedError';
+    }
+}
 module.exports = {
     AppError,
     NotFoundError,
     AccessDeniedError,
-    ValidationError
+    ValidationError,
+    UnauthorizedError
 };

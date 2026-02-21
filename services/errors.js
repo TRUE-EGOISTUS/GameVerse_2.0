@@ -29,7 +29,7 @@ class UnauthorizedError extends AppError {
 
 class ValidationError extends Error {
     constructor(message) {
-        super(message);
+        super(message, 400, 'VALIDATION_ERROR');
         this.name = 'ValidationError';
         this.statusCode = 400;
     }

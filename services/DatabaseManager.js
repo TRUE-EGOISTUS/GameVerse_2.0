@@ -135,26 +135,27 @@ class DatabaseManager {
         }
     }
 
-async getUserById(id) {
+async getUserById(id, client) {
   try {
-    console.log('getUserById: Fetching user with id:', id);
+    this.log('debug', `getUserById: Fetching user with id: ${id}`);
     const query = `
       SELECT id, username, password, role, online, favorites, banned, banned_until, ban_reason, 
              suspended_until, avatar, last_seen
       FROM users
       WHERE id = $1
     `;
-    const result = await this.pool.query(query, [id]);
+    const poolOrClient = client || this.pool;
+    const result = await poolOrClient.query(query, [id]);
     if (result.rows.length === 0) {
-      console.log('getUserById: User not found:', id);
+      this.log('warn', 'getUserById: User not found:', id);
       return null;
     }
     const user = result.rows[0];
-    user.favorites = Array.isArray(user.favorites) ? user.favorites : (user.favorites ? JSON.parse(user.favorites) : []);
-    console.log('getUserById: User fetched:', user.username, 'favorites:', user.favorites);
+    user.favorites = this.parseJson(user.favorites, []);
+    this.log('debug', 'getUserById: User fetched:', user.username, 'favorites:', user.favorites);
     return user;
   } catch (err) {
-    console.error('getUserById: Error:', err);
+    this.log('error', 'getUserById: Error:', err);
     throw err;
   }
 }
@@ -185,19 +186,26 @@ async getUserById(id) {
 
 // Файл: src/services/DatabaseManager.js
 async saveUser(user, client = null) {
-    console.log(`[DEBUG] DatabaseManager.saveUser: Saving user ${user.username}, favorites: ${JSON.stringify(user.favorites)}`);
+    this.log('debug', `DatabaseManager.saveUser: Saving user ${user.username}, favorites: ${JSON.stringify(user.favorites)}`);
     try {
         // Если favorites не передан, загружаем текущего пользователя из базы
         let favoritesJson;
-        if (user.favorites === undefined || user.favorites === null) {
-            console.log(`[DEBUG] DatabaseManager.saveUser: Favorites not provided, fetching existing user`);
+        if (user.favorites == null) {
+            this.log('debug', `DatabaseManager.saveUser: Favorites not provided, fetching existing user`);
             const existingUser = await this.getUserById(user.id, client);
-            favoritesJson = JSON.stringify(existingUser.favorites || []);
+            if (existingUser != null) {
+                favoritesJson = JSON.stringify(existingUser.favorites || []);
+                this.log('debug', `DatabaseManager.saveUser: Existing favorites loaded: ${favoritesJson}`);
+            }
+            else {
+                favoritesJson = JSON.stringify([]);
+                this.log('debug', `DatabaseManager.saveUser: No existing user, default favorites set: ${favoritesJson}`);
+            }
         } else {
             // Проверяем, что favorites — это массив
             favoritesJson = JSON.stringify(Array.isArray(user.favorites) ? user.favorites : []);
         }
-        console.log(`[DEBUG] DatabaseManager.saveUser: Formatted favorites: ${favoritesJson}`);
+        this.log('debug', `DatabaseManager.saveUser: Formatted favorites: ${favoritesJson}`);
 
         const query = `
             INSERT INTO users (
@@ -229,17 +237,17 @@ async saveUser(user, client = null) {
             user.last_seen ? new Date(user.last_seen) : null,
             user.avatar,
             favoritesJson, // Используем JSON-строку
-            user.banned || false,
+            user.banned ?? false,
             user.banned_until ? new Date(user.banned_until) : null,
             user.ban_reason,
             user.suspended_until ? new Date(user.suspended_until) : null
         ];
         const poolOrClient = client || this.pool;
-        const res = await poolOrClient.query(query, values);
-        console.log(`[DEBUG] DatabaseManager.saveUser: User saved, favorites: ${JSON.stringify(res.rows[0].favorites)}`);
-        return res.rows[0];
+        const result = await poolOrClient.query(query, values);
+        this.log('debug', `DatabaseManager.saveUser: User saved, favorites: ${JSON.stringify(result.rows[0].favorites)}`);
+        return result.rows[0];
     } catch (err) {
-        console.error(`[ERROR] DatabaseManager.saveUser: Failed to save user ${user.username}:`, err);
+        this.log('error', `DatabaseManager.saveUser: Failed to save user ${user.username}: ${err.message}`);
         throw err;
     }
 }
@@ -322,17 +330,17 @@ async getGameById(id) {
 
 async saveGame(game) {
     try {
-        const ratings = Array.isArray(game.ratings) ? game.ratings : [];
-        const files = Array.isArray(game.files) ? game.files : [];
-        const tags = Array.isArray(game.tags) ? game.tags : [];
+        const ratings = Array.isArray(game.ratings) ? game.ratings : this.parseJson(game.ratings, []);
+        const files = Array.isArray(game.files) ? game.files : this.parseJson(game.files, []);
+        const tags = Array.isArray(game.tags) ? game.tags :  this.parseJson(game.tags, []);
         const uploadDate = game.upload_date instanceof Date ? game.upload_date.toISOString() : new Date().toISOString();
 
         // Находим index__*.html в файлах
         const indexFile = files.find(f => f.match(/simple_game[\\\/]index__.*\.html$/i));
         const gamePath = indexFile ? `/games/${game.id}/${indexFile}` : game.path || `/games/${game.id}/simple_game/index.html`;
 
-        console.log(`[DEBUG] Saving game ${game.id} with path: ${gamePath}`);
-        console.log(`[DEBUG] Files: ${JSON.stringify(files)}`);
+        this.log('debug', `Saving game ${game.id} with path: ${gamePath}`);
+        this.log('debug', `Files: ${JSON.stringify(files)}`);
 
         const filesJson = JSON.stringify(files);
         const ratingsJson = JSON.stringify(ratings);

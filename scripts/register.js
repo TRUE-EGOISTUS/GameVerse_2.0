@@ -97,14 +97,14 @@ if (username.length > 20) {
   } catch (e) {
     console.error('Ошибка парсинга JSON:', e);
     console.error('Текст ответа сервера:', dataText);
-    data = { error: 'Некорректный ответ сервера' };
+    data = { error: { message: 'Некорректный ответ сервера' } };
   }
 
   if (response.ok) {
     localStorage.setItem('token', data.token);
     window.location.href = '/index.html';
   } else {
-    errorMessage.textContent = data.error || 'Ошибка регистрации';
+    errorMessage.textContent = data?.error?.message || data?.error || 'Ошибка регистрации';
     errorMessage.style.display = 'block';
   }
 } catch (err) {

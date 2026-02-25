@@ -54,8 +54,8 @@ class GameServer {
     _setupDomainServices() {
         this.authService = new AuthService(this.JWT_SECRET, this.dbManager, this.cache);
         this.gameService = new GameService(this.dbManager, this.cache);
-        this.userService = new UserService(this.dbManager, this.cache, this.eventBus);
         this.fileManager = new FileManager({ dataDir: this.dataDir });
+        this.userService = new UserService(this.dbManager, this.cache, this.eventBus, this.fileManager);
         this.dbManager.fileManager = this.fileManager;
     }
 

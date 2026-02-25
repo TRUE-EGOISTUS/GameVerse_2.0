@@ -71,7 +71,7 @@ class FileManager {
         const baseName = path.basename(filename).replace(/[^a-zA-Z0-9._-]/g, '_');
         const ext = path.extname(baseName);
         const name = path.basename(baseName, ext).replace(/\.+$/, '');
-        const hash = Buffer.from(crypto.randomBytes(4)).toString('hex').slice(0, 8);
+        const hash = crypto.randomBytes(4).toString('hex').slice(0, 8);
         return `${name}__${hash}${ext}`;
     }
 
@@ -142,22 +142,52 @@ createGameUpload() {
             targetPath = path.join(gameDir, fileName);
         }
         await fs.writeFile(targetPath, file.buffer);
-        savedFiles.push(path.relative(path.join(self.dataDir, 'games', gameId), targetPath));
+        const relativePath = path.relative(self.dataDir, targetPath).replace(/\\/g, '/');
+        savedFiles.push(relativePath);
         self.log(`Сохранён файл игры: ${targetPath} (оригинальное имя: ${file.originalname}, хэш: ${contentHash})`, 'info');
     }
     return savedFiles;
 }
 
+    async _recursiveScan(dir) {
+        let results = [];
+       try {
+            const list = await fs.readdir(dir, { withFileTypes: true });
+        for (const dirent of list) {
+            const fullPath = path.join(dir, dirent.name);
+            if (dirent.isDirectory()) {
+                const subResults = await this._recursiveScan(fullPath);
+                results = results.concat(subResults);
+            } else {
+                results.push(fullPath);
+            }
+        }
+        return results;
+    }
+    catch (err) {        this.log(`Ошибка при рекурсивном сканировании директории ${dir}: ${err.message}`, 'error');
+        return [];
+    }
+    }
     async scanGameDirectory(gameId) {
         const gameDir = path.join(this.dataDir, 'games', gameId);
         try {
             const exists = await fs.access(gameDir).then(() => true).catch(() => false);
             if (!exists) {
                 this.log(`Директория ${gameDir} не существует, пропускаем сканирование`, 'info');
-                return;
+                return false;
+            }
+            const files = await this._recursiveScan(gameDir);
+            if (!files || files.length === 0) {
+                this.log(`Директория ${gameDir} пуста или не содержит файлов`, 'warn');
+                return false;
+            }
+            else {
+                this.log(`Найдено ${files.length} файлов в директории ${gameDir}`, 'info');
+                return true;
             }
         } catch (err) {
             this.log(`Ошибка сканирования директории ${gameDir}: ${err.message}`, 'error');
+            return false;
         }
     }
     createAvatarUpload() {
@@ -194,15 +224,14 @@ createCoverUpload() {
             },
             filename: (req, file, cb) => {
                 self.log(`Saving file ${file.originalname} to temp directory`, 'info');
-                const safeName = self.sanitizeFilename(file.originalname || 'cover.png');
-                cb(null, safeName);
+                cb(null, self.sanitizeFilename(file.originalname)); // Сохраняем с оригинальным именем, но безопасным для файловой системы
             }
         }),
         limits: {
             fileSize: self.limits.coverFileSize,
             files: 1
         },
-        fileFilter: async function (req, file, cb) {
+        fileFilter: function (req, file, cb) {
             try {
                 self.log(`Received cover file ${file.originalname} with MIME type: ${file.mimetype}`, 'info');
                 if (!self.allowedTypes.cover.includes(file.mimetype)) {
@@ -232,19 +261,20 @@ getGameUpload() {
     }
 
     async saveAvatarBuffer(userId, buffer, extension = 'png') {
-       let normalExtAvatar = extension.toLowerCase().replace(/^\./, '');
-       let safeExtAvatar;
-       if (normalExtAvatar === 'jpg' || normalExtAvatar === 'jpeg' || normalExtAvatar === 'png' || normalExtAvatar === 'gif') {
-           safeExtAvatar = normalExtAvatar;
-        }
-       else {
-            safeExtAvatar = 'png';
-        }
-       try {
+        try {
             const avatarDir = path.join(this.dataDir, 'avatars');
             await this.ensureDir(avatarDir);
+            const normalEXT = extension.replace(/^\./, '').toLowerCase();
             const safeUserId = userId.toString().replace(/[^a-zA-Z0-9_-]/g, '');
-            const filename = `${safeUserId}.${safeExtAvatar}`;
+            const allowedExts = this.allowedTypes.avatar.map(type => type.split('/')[1]);
+            let safeExt = normalEXT;
+            if (safeExt === 'jpg') {
+                safeExt = 'jpeg';
+            }
+            if (!allowedExts.includes(safeExt)) {
+                safeExt = 'png';
+            }
+            const filename = `${safeUserId}.${safeExt}`;
             const filePath = path.join(avatarDir, filename);
 
             await fs.writeFile(filePath, buffer);
@@ -268,7 +298,16 @@ getGameUpload() {
     const coverDir = path.join(this.dataDir, 'covers');
     await this.ensureDir(coverDir);
     const safeGameId = gameId.toString().replace(/[^a-zA-Z0-9_-]/g, '');
-    const filename = `${safeGameId}.${safeExtCover}`;
+    const normalEXT = extension.replace(/^\./, '').toLowerCase();
+    const allowedExts = this.allowedTypes.cover.map(type => type.split('/')[1]);
+    let safeExt = normalEXT;
+    if (safeExt === 'jpg') {
+        safeExt = 'jpeg';
+    }
+    if (!allowedExts.includes(safeExt)) {
+        throw new ValidationError(`Недопустимый тип файла обложки: .${normalEXT}`);
+    }
+    const filename = `${safeGameId}.${safeExt}`;
     const filePath = path.join(coverDir, filename);
     await fs.writeFile(filePath, buffer);
     this.log(`Сохранена обложка для gameId ${gameId}: ${filePath}`, 'info');

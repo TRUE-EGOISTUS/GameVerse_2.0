@@ -79,11 +79,21 @@ class GameServer {
         for (const game of games) {
             const gameDir = path.join(this.dataDir, 'games', game.id);
             const exists = await fs.promises.access(gameDir).then(() => true).catch(() => false);
+            const logPrefix = `Проверка игры ${game.id}:`;
             if (!exists) {
                 await this.dbManager.deleteGame(game.id);
-                console.log(`Удалена устаревшая игра из БД: ${game.id}`);
+                console.log(`${logPrefix} Удалена устаревшая игра из БД: ${game.id}`);
+                continue;
             } else {
-                await this.fileManager.scanGameDirectory(game.id);
+                console.log(`${logPrefix} Директория существует: ${gameDir}`);
+            }
+            const isScanned = await this.fileManager.scanGameDirectory(game.id);
+            if (!isScanned) {
+                await this.dbManager.deleteGame(game.id); 
+                console.log(`${logPrefix} Удалена игра с непроверенной директорией: ${game.id}`);
+            }
+            else{
+                console.log(`${logPrefix} Директория проверена успешно: ${game.id}`);
             }
         }
 

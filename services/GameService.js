@@ -10,7 +10,8 @@ class GameService {
             GAMES_LIST: 'games_list',
             GAME_FILES: 'game_files_',
             GAME_ANALYTICS: 'game_analytics_',
-            GAME_REVIEWS: 'game_reviews_'
+            GAME_REVIEWS: 'game_reviews_',
+            GAME_BY_ID: 'game_by_id_'
         };
         this.VALID_GENRES = ['Аркада', 'Стратегия', 'Головоломка'];
     }
@@ -55,17 +56,16 @@ async getGames(filter = {}, sort = null, search = null, page = 1, limit = 10) {
       query += ' WHERE ' + conditions.join(' AND ');
     }
 
-    if (sort) {
-      let sortField;
-      if (sort === 'views') {
-        sortField = 'views DESC';
+         let sortField;
+            if (sort === 'views') {
+                sortField = 'views DESC, id ASC';
       } else if (sort === 'rating') {
-        sortField = '(SELECT AVG((r->>\'rating\')::numeric) FROM jsonb_array_elements(ratings) r) DESC NULLS LAST';
+        sortField = '(SELECT AVG((r->>\'rating\')::numeric) FROM jsonb_array_elements(ratings) r) DESC NULLS LAST, id ASC';
       } else {
-        sortField = 'upload_date DESC';
+        sortField = 'upload_date DESC, id ASC';
       }
       query += ` ORDER BY ${sortField}`;
-    }
+
 
     query += ` LIMIT $${paramIndex++} OFFSET $${paramIndex}`;
     params.push(limit, (page - 1) * limit);
@@ -101,7 +101,7 @@ async getGames(filter = {}, sort = null, search = null, page = 1, limit = 10) {
 async getGameById(id) {
     console.log('GameService.getGameById: id =', id);
     if (!id) throw new ValidationError('ID игры не указан');
-    const cacheKey = `${this.CACHE_KEYS.GAMES_LIST}_${id}`;
+    const cacheKey = `${this.CACHE_KEYS.GAME_BY_ID}_${id}`;
     let game = this.cache.get(cacheKey);
     if (!game) {
         try {
@@ -117,9 +117,9 @@ async getGameById(id) {
                 files: game.files
             });
             // Проверяем, что ratings, files и tags — массивы
-            game.ratings = Array.isArray(game.ratings) ? game.ratings : [];
-            game.files = Array.isArray(game.files) ? game.files : [];
-            game.tags = Array.isArray(game.tags) ? game.tags : [];
+            game.ratings = this.dbManager.parseJson(game.ratings, []);
+            game.files = this.dbManager.parseJson(game.files, []);
+            game.tags = this.dbManager.parseJson(game.tags, []);
             this.cache.set(cacheKey, game, 600);
         } catch (err) {
             console.error(`Ошибка в getGameById для id ${id}: ${err.message}`);
@@ -199,18 +199,22 @@ async rateGame(id, user, rating, comment) {
     console.log('Game ratings:', game.ratings); // Отладка
 
     // Проверяем, оценил ли пользователь уже
-    if (game.ratings.some(r => r.user === user.username)) {
+
+    let username = String(user.username).trim().toLowerCase();
+    if (game.ratings.some(r => String(r.user).trim().toLowerCase() === username)) {
         throw new ValidationError('Игра уже оценена');
+    }
+    if (username === '') {
+        throw new ValidationError('Пользователь не найден');
     }
 
     const Comment = comment ? comment : '';    
     game.ratings.push({
-        user: user.username,
+        user: username,
         rating: Number(rating),
         comment: Comment,
         date: new Date().toISOString()
     });
-    game.views = (game.views || 0) + 1;
     await this.saveGame(game);
 }
 
@@ -232,15 +236,15 @@ async updateGameFields(game, data, coverFile) {
 
     if (genre && !this.VALID_GENRES.includes(genre)) throw new ValidationError('Недопустимый жанр');
 
-    let parsedTags = tags
-        ? await Promise.all(
-              tags
-                  .split(',')
-                  .map(tag => tag.trim())
-                  .filter(tag => tag.length > 0)
-                  .map(tag => tag) // Убираем вызов translationFacade, так как он больше не используется
-          )
-        : game.tags || [];
+    let parsedTags = [];
+    if (typeof tags === 'string') {
+        parsedTags = tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+    } else if (Array.isArray(tags)) {
+        parsedTags = tags.map(tag => String(tag).trim()).filter(tag => tag.length > 0);
+    }
+    else {
+        parsedTags = game.tags || [];
+    }
 
     game.title = title ? title : game.title || '';
     game.name = game.title;
@@ -343,7 +347,7 @@ async updateGameFields(game, data, coverFile) {
     clearGameCache(gameId) {
         const keys = this.cache.keys();
         keys.forEach(key => {
-            if (key.includes(`_${gameId}`) || key.endsWith(`_${gameId}`) || key.startsWith(this.CACHE_KEYS.GAMES_LIST)) {
+            if (key.startsWith(this.CACHE_KEYS.GAME_BY_ID) && key.endsWith(`_${gameId}`)) {
                 this.cache.del(key);
             }
         });

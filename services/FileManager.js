@@ -49,8 +49,9 @@ class FileManager {
         });
 
         this.tempDir = path.join(this.dataDir, 'temp');
-        this._initializeDirectories(); // Добавляем инициализацию папок
-
+        this._initializeDirectories().catch((err) => {
+            this.log(`Failed to initialize directories: ${err.message}`, 'error');
+        });
         this.upload = this.createGameUpload();
         this.avatarUpload = this.createAvatarUpload();
         this.coverUpload = this.createCoverUpload();
@@ -286,6 +287,14 @@ getGameUpload() {
     }
 
  async saveCoverBuffer(gameId, buffer, extension = 'png') {
+    let normalExtCover = extension.toLowerCase().replace(/^\./, '');
+    let safeExtCover;
+    if (normalExtCover === 'jpg'|| normalExtCover === 'jpeg' || normalExtCover === 'png') {
+        safeExtCover = normalExtCover;
+    }
+    else{
+        safeExtCover = 'png';
+    }
     const coverDir = path.join(this.dataDir, 'covers');
     await this.ensureDir(coverDir);
     const safeGameId = gameId.toString().replace(/[^a-zA-Z0-9_-]/g, '');

@@ -6,10 +6,11 @@ const { createUser, validateUser, toClientUser } = require('../utils/factories')
 const { ValidationError, NotFoundError, AccessDeniedError } = require('./errors');
 
 class UserService {
-  constructor(dbManager, cache, eventBus) {
+  constructor(dbManager, cache, eventBus, fileManager) {
     this.dbManager = dbManager;
     this.cache = cache;
     this.eventBus = eventBus;
+    this.fileManager = fileManager;
     this.CACHE_KEYS = {
       USER_DATA: 'user_data_',
       USER_FAVORITES: 'user_favorites_',
@@ -116,7 +117,7 @@ class UserService {
     const ext = file.originalname
       ? path.extname(file.originalname).toLowerCase().replace('.', '')
       : (file.mimetype?.split('/')[1] || 'png');
-    const avatar = await this.dbManager.fileManager.saveAvatarBuffer(
+    const avatar = await this.fileManager.saveAvatarBuffer(
       user.id,
       file.buffer,
       ext
@@ -348,16 +349,15 @@ async unsuspendUser(username, currentUserId) {
     if (user.id === currentUserId) throw new AccessDeniedError('Нельзя удалить себя');
     console.log(`[DEBUG] deleteUser: Attempting to delete user ${userId} by ${currentUserId}`);
     console.log(`[DEBUG] deleteUser: Found user ${user.username}`);
-    console.log(`[DEBUG] deleteUser: Avatar path ${user.avatar ? path.join(this.dataDir, 'avatars', path.basename(user.avatar)) : 'none'}`);
     console.log(`[DEBUG] deleteUser: Calling dbManager.deleteUser for user ${userId}`);
     const client = await this.dbManager.pool.connect();
     try {
       await client.query('BEGIN');
       if (user.avatar) {
-        const avatarPath = path.join(this.dataDir, 'avatars', path.basename(user.avatar));
+        const avatarPath = this.dbManager.fileManager.getFullPathFromUrl(user.avatar);
         await require('fs').promises.rm(avatarPath, { force: true });
       }
-      await this.dbManager.deleteUser(user.id);
+      await this.dbManager.deleteUser(user.id, client);
       await client.query('COMMIT');
       this._clearUserCache(user.id);
       this.eventBus.publish('user_deleted', { user, by: currentUserId });

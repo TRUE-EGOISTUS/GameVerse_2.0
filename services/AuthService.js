@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const { ValidationError, NotFoundError, AccessDeniedError } = require('./errors');
 const dayjs = require('dayjs'); // Добавляем dayjs для форматирования даты
+const { on } = require('node-cache');
 
 class AuthService {
   constructor(jwtSecret, dbManager, cache) {
@@ -83,8 +84,21 @@ class AuthService {
         const decoded = jwt.verify(token, this.jwtSecret);  // <- исправлено здесь
         let userFromBase = await this.dbManager.getUserById(decoded.id);
         if (!userFromBase) throw new NotFoundError('Пользователь не найден');
-        this.cache.set(cacheKey, userFromBase, 300);
-        return userFromBase;
+        const safeUser = {
+            id: userFromBase.id,
+            username: userFromBase.username,
+            role: userFromBase.role,
+            avatar: userFromBase.avatar || null,
+            favorites: Array.isArray(userFromBase.favorites) ? userFromBase.favorites : [],
+            banned: userFromBase.banned || false,
+            banned_until: userFromBase.banned_until || null,
+            ban_reason: userFromBase.ban_reason || null,
+            suspended_until: userFromBase.suspended_until || null,
+            online: userFromBase.online || false,
+            last_seen: userFromBase.last_seen || null
+        };
+        this.cache.set(cacheKey, safeUser, 300);
+        return safeUser;
     } catch (err) {
         if (err.name === 'TokenExpiredError') throw new AccessDeniedError('Токен истек');
         if (err instanceof NotFoundError) throw err;

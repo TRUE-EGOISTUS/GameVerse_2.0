@@ -1,4 +1,5 @@
 const { Pool } = require('pg');
+const { cli } = require('winston/lib/winston/config');
 
 class DatabaseManager {
     /**
@@ -276,9 +277,10 @@ async updateUser(userId, updates) {
     throw err;
   }
 }
-async deleteUser(userId) {
+async deleteUser(userId, client = null) {
     try {
-        await this.pool.query('DELETE FROM users WHERE id = $1', [userId]);
+        const poolOrClient = client || this.pool;
+        await poolOrClient.query('DELETE FROM users WHERE id = $1', [userId]);
         this.log('info', 'User deleted with id:', userId);
     } catch (err) {
         this.log('error', 'Error in deleteUser:', err);
@@ -286,9 +288,18 @@ async deleteUser(userId) {
     }
 }
 
-  async getGames() {
+    async getGames(filters = {}) {
     try {
-        const res = await this.pool.query('SELECT * FROM games');
+                const { author } = filters;
+                let query = 'SELECT * FROM games';
+                const values = [];
+
+                if (author) {
+                        query += ' WHERE author = $1';
+                        values.push(author);
+                }
+
+                const res = await this.pool.query(query, values);
         this.log('info', 'Games retrieved:', res.rows.length);
         return res.rows.map(row => ({
             ...row,
@@ -296,7 +307,8 @@ async deleteUser(userId) {
             files: this.parseJson(row.files, []),
             tags: this.parseJson(row.tags, []),
             upload_date: row.upload_date || null,
-            views: row.views || 0
+            views: row.views || 0,
+            filters: this.parseJson(row.filters, [])
         }));
     } catch (err) {
         this.log('error', 'Error in getGames:', err);

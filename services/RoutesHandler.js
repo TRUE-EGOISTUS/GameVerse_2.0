@@ -702,15 +702,11 @@ this.app.post('/games/:id/cover', RoutesHandler.authMiddleware(this.authService)
 
 this.app.post('/games/upload',
     RoutesHandler.authMiddleware(this.authService),
-    this.authService.checkRole(['developer', 'admin']),
-    (req, res, next) => {
-        console.log('[DEBUG] Вызван middleware getGameUpload');
-        this.fileManager.getGameUpload()(req, res, next);
-    },
+    this.authService.checkRole(['developer', 'admin']), this.fileManager.getGameUpload(),
+
     async (req, res, next) => {
         let newGameId = null;
         try {
-            console.log('[DEBUG] req.body before validation:', req.body);
             const files = req.files || [];
             if (!files.length) throw new ValidationError('Файлы игры не загружены');
             const { error, value } = gameUploadSchema.validate(req.body);
@@ -728,8 +724,6 @@ this.app.post('/games/upload',
             // Находим файл index__*.html
             const indexFiles = gameFiles.filter(f => f.match(/simple_game[\\\/]index__.*\.html$/i));
             if (indexFiles.length === 0) {
-                const gameDir = path.join(this.dataDir, 'games', newGameId);
-                await fs.rm(gameDir, { recursive: true, force: true });
                 throw new ValidationError('Файл index.html не найден среди сохраненных файлов');
             }
             if (indexFiles.length > 1) {
@@ -749,8 +743,6 @@ this.app.post('/games/upload',
                 }
             } catch (err) {
                 console.error(`[ERROR] Не удалось прочитать файл ${indexFilePath}: ${err.message}`);
-                const gameDir = path.join(this.dataDir, 'games', newGameId);
-                await fs.rm(gameDir, { recursive: true, force: true });
                 throw new ValidationError('Не удалось прочитать файл index.html');
             }
 
@@ -771,16 +763,7 @@ this.app.post('/games/upload',
             await fs.writeFile(indexFilePath, indexContent);
             console.log(`[DEBUG] Обновлены ссылки в ${indexPath}`);
 
-            const parsedTags = tags
-                ? await Promise.all(
-                    tags
-                        .split(',')
-                        .map(tag => tag.trim())
-                        .filter(tag => tag)
-                        .map(tag => tag)
-                )
-                : [];
-            const translatedGenre = genre ? genre : '';
+            const parsedTags = tags ? tags.split(',').map(tag => tag.trim()).filter(tag => tag) : [];
 
             const game = createGame({
                 id: newGameId,
@@ -790,7 +773,7 @@ this.app.post('/games/upload',
                 author: req.user.username,
                 path: gamePath, // Используем правильный путь
                 upload_date: new Date().toISOString(),
-                genre: translatedGenre,
+                genre: genre ? genre : '',
                 views: 0,
                 cover: null,
                 files: gameFiles,
@@ -799,8 +782,6 @@ this.app.post('/games/upload',
             });
 
             if (!validateGame(game)) {
-                const gameDir = path.join(this.dataDir, 'games', newGameId);
-                await fs.rm(gameDir, { recursive: true, force: true });
                 throw new ValidationError('Некорректные данные игры');
             }
 

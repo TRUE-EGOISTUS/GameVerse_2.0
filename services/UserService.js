@@ -354,9 +354,11 @@ async unsuspendUser(username, currentUserId) {
     try {
       await client.query('BEGIN');
       if (user.avatar) {
-        const avatarPath = this.dbManager.fileManager.getFullPathFromUrl(user.avatar);
-        await require('fs').promises.rm(avatarPath, { force: true });
-      }
+        const avatarPath = await this.fileManager.getFullPathFromUrl(user.avatar);
+        if (avatarPath) {
+          await require('fs').promises.rm(avatarPath, { force: true });
+      } 
+    }
       await this.dbManager.deleteUser(user.id, client);
       await client.query('COMMIT');
       this._clearUserCache(user.id);

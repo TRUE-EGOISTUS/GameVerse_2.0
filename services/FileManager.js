@@ -316,7 +316,28 @@ getGameUpload() {
 
     log(message, level = 'info') {
         this.logger[level](message);
+ 
     }
+    async getFullPathFromUrl(url) {
+    if (!url){ 
+      return null;
+    }
+    const cleanUrl = url.split('?')[0].split('#')[0];
+    const normalizedUrl = cleanUrl.replace(/\\/g, '/');
+     if (normalizedUrl.includes('..')) {
+        return null;
+    }
+    const saveRelativePath = normalizedUrl.replace(/^\/+/, '');
+    const fullPath = path.resolve(this.dataDir, saveRelativePath);
+    if (!fullPath.startsWith(this.dataDir)) {
+        return null;
+    }
+    const exists = path.resolve(fullPath).startsWith(this.dataDir) && await fs.access(fullPath).then(() => true).catch(() => false);
+    if (!exists) {
+        return null;
+    }
+    return fullPath;
+  }
 }
 
 module.exports = FileManager;

@@ -196,7 +196,6 @@ async rateGame(id, user, rating, comment) {
 
     // Гарантируем, что ratings — массив
     game.ratings = Array.isArray(game.ratings) ? game.ratings : [];
-    console.log('Game ratings:', game.ratings); // Отладка
 
     // Проверяем, оценил ли пользователь уже
 

@@ -5,7 +5,6 @@ const mime = require('mime-types');
 const Joi = require('joi');
 const { v4: uuidv4 } = require('uuid');
 const { createGame, validateGame } = require('../utils/factories');
-const jwt = require('jsonwebtoken');
 const { ValidationError, NotFoundError, AccessDeniedError, UnauthorizedError } = require('./errors');
 const GAMES_BASE_DIR = path.resolve(__dirname, '..', 'uploads', 'games'); // путь к хранилищу
 class RoutesHandler {
@@ -96,7 +95,7 @@ this.app.post('/register', async (req, res, next) => {
         if (error) throw new ValidationError(`ValidationError: ${error.message}`);
         const { username, password, role } = value;
         const user = await this.userService.register(username, password, role);
-        const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, process.env.JWT_SECRET, { expiresIn: '24h' });
+        const token = await this.authService.generateUserToken(user);
         await this.userService.dbManager.saveToken(user.id, token);
         res.json({ token, user });
     } catch (err) {
@@ -166,11 +165,7 @@ this.app.put('/user/username', RoutesHandler.authMiddleware(this.authService), a
         const updatedUser = await this.userService.changeUsername(req.user.id, newUsername);
 
         // Создаём новый токен с обновлённым именем пользователя
-        const token = jwt.sign(
-            { id: updatedUser.id, username: updatedUser.username, role: updatedUser.role },
-            process.env.JWT_SECRET,
-            { expiresIn: '24h' }
-        );
+        const token = await this.authService.generateUserToken(updatedUser);
         await this.userService.dbManager.saveToken(updatedUser.id, token);
 
         res.status(200).json({ success: true, username: updatedUser.username, token });

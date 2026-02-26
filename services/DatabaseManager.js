@@ -1,5 +1,5 @@
 const { Pool } = require('pg');
-const { cli } = require('winston/lib/winston/config');
+
 
 class DatabaseManager {
     /**
@@ -308,7 +308,6 @@ async deleteUser(userId, client = null) {
             tags: this.parseJson(row.tags, []),
             upload_date: row.upload_date || null,
             views: row.views || 0,
-            filters: this.parseJson(row.filters, [])
         }));
     } catch (err) {
         this.log('error', 'Error in getGames:', err);

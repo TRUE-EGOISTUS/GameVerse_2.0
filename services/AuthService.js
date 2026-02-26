@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const { ValidationError, NotFoundError, AccessDeniedError } = require('./errors');
 const dayjs = require('dayjs'); // Добавляем dayjs для форматирования даты
-const { on } = require('node-cache');
+
 
 class AuthService {
   constructor(jwtSecret, dbManager, cache) {
@@ -17,7 +17,14 @@ class AuthService {
     }
     return jwt.sign(payload, this.jwtSecret, { expiresIn: '1h' });
   }
-
+async generateUserToken(user) {
+    const payload = {
+      id: user.id,
+      username: user.username,
+      role: user.role
+    };
+    return this.generateToken(payload);
+  }
  async login(username, password) {
     let dateNow = new Date();
     if (!username || !password) throw new ValidationError('Отсутствуют учетные данные');
@@ -118,6 +125,8 @@ class AuthService {
             next();
         };
     }
+
 }
+ 
 
 module.exports = AuthService;

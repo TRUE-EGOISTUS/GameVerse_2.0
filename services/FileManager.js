@@ -142,7 +142,7 @@ createGameUpload() {
             targetPath = path.join(gameDir, fileName);
         }
         await fs.writeFile(targetPath, file.buffer);
-        const relativePath = path.relative(self.dataDir, targetPath).replace(/\\/g, '/');
+        const relativePath = path.relative(gameDir, targetPath).replace(/\\/g, '/');
         savedFiles.push(relativePath);
         self.log(`Сохранён файл игры: ${targetPath} (оригинальное имя: ${file.originalname}, хэш: ${contentHash})`, 'info');
     }

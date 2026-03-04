@@ -77,7 +77,7 @@ class UserService {
       last_seen: dayjs().toISOString()
     });
 
-    if (!validateUser(user)) throw new ValidationError('Некорректные данные пользователя');
+    if (!validateUser(user).valid) throw new ValidationError('Некорректные данные пользователя');
 
     await this._saveUserWithTransaction(user);
     this._clearUserCache(user.id);

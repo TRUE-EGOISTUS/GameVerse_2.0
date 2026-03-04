@@ -24,7 +24,15 @@ class NodeCacheStrategy extends ICacheStrategy {
     flushAll()             { return this.cache.flushAll(); }
     keys()                 { return this.cache.keys(); }
     on(event, handler)     { this.cache.on(event, handler); }
-    off(event, handler)    { this.cache.off(event, handler); }
+    off(event, handler) {
+        if (typeof this.cache.off === 'function') {
+            this.cache.off(event, handler);
+            return;
+        }
+        if (typeof this.cache.removeListener === 'function') {
+            this.cache.removeListener(event, handler);
+        }
+    }
 }
 
 // ------------------ Обёртка Cache ---------------------

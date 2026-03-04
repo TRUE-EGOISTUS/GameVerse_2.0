@@ -776,7 +776,7 @@ this.app.post('/games/upload',
                 tags: parsedTags,
             });
 
-            if (!validateGame(game)) {
+            if (!validateGame(game).valid) {
                 throw new ValidationError('Некорректные данные игры');
             }
 

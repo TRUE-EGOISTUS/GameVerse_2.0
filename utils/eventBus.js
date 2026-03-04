@@ -26,6 +26,9 @@ class EventBus {
      * @param {function} listener
      */
     once(event, listener) {
+        if (typeof listener !== 'function') {
+            throw new TypeError('Listener must be a function');
+        }
         const wrapper = async (data) => {
             this.unsubscribe(event, wrapper); // Отписываемся до вызова слушателя
             await listener(data);
